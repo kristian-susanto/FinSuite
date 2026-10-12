@@ -716,8 +716,15 @@ HTML_PAGE = r'''<!doctype html>
         return SA_EXCHANGE_MAP[tv] || tv;
       }
       function saBaseUrl(exchangeCode, ticker) {
+        const tv = String(exchangeCode).toUpperCase();
         const ex = saExchangeCode(exchangeCode).toLowerCase();
-        const tk = String(ticker).toLowerCase();
+        let tk = String(ticker).toLowerCase();
+
+        // ── Hong Kong 3-digit tickers must be padded to 4 digits ──
+        if (tv === "HKEX" && /^\d{3}$/.test(tk)) {
+          tk = "0" + tk;
+        }
+
         const usExchanges = ["otc", "nasdaq", "nyse", "amex"];
         return usExchanges.includes(ex)
           ? `https://www.stockanalysis.com/stocks/${tk}`
@@ -809,15 +816,16 @@ HTML_PAGE = r'''<!doctype html>
         checkboxGrid.querySelectorAll('input[type="checkbox"]').forEach((cb) => (cb.checked = selectAll));
       }
 
-      function getPeriodLabel(dateStr) {
+      function getPeriodLabel(dateStr, freq) {
         const dt = new Date(dateStr + "T00:00:00");
         const y = dt.getFullYear();
         const m = dt.getMonth() + 1;
+
         if (m === 3) return `1Q${y}`;
         if (m === 6) return `1H${y}`;
         if (m === 9) return `9M${y}`;
         if (m === 12) return `FY${y}`;
-        return `${m}M${y}`; // fallback if not a standard quarter-end
+        return ""; // fallback (will not be called because it has already been filtered)
       }
 
       function processPeriodData(timestamps, closes, freq) {
@@ -848,7 +856,9 @@ HTML_PAGE = r'''<!doctype html>
             if (m !== 5 && m !== 11) continue;
             key = `${y}-H${m === 5 ? 1 : 2}`;
           } else {
-            // Quarterly
+            // Quarterly — keep only standard quarter-end months: Mar (2), Jun (5), Sep (8), Dec (11)
+            // This filters out October so neither 10M2026 nor 4Q2026 appears.
+            if (m !== 2 && m !== 5 && m !== 8 && m !== 11) continue;
             key = `${y}-Q${Math.floor(m / 3) + 1}`;
           }
 
@@ -856,7 +866,7 @@ HTML_PAGE = r'''<!doctype html>
           grouped[key] = {
             date: d.toISOString().split("T")[0],
             close: closes[i],
-            period: getPeriodLabel(d.toISOString().split("T")[0]),
+            period: getPeriodLabel(d.toISOString().split("T")[0], freq),
           };
         }
 
@@ -880,7 +890,14 @@ HTML_PAGE = r'''<!doctype html>
         }
 
         const suffix = YAHOO_SUFFIX_MAP[exchangeCode.toUpperCase()] || "";
-        const symbol = ticker.toUpperCase() + suffix;
+        let baseTicker = ticker.toUpperCase();
+
+        // ── Hong Kong 3-digit tickers must be padded to 4 digits ──
+        if (exchangeCode.toUpperCase() === "HKEX" && /^\d{3}$/.test(baseTicker)) {
+          baseTicker = "0" + baseTicker;
+        }
+
+        const symbol = baseTicker + suffix;
 
         newTab.document.write(`<html><head><title>Loading...</title></head><body style="font-family:system-ui;padding:40px;text-align:center;background:#f1f5f9"><h2>Fetching historical data for ${symbol}...</h2><p>Please wait.</p></body></html>`);
 
@@ -1015,7 +1032,7 @@ HTML_PAGE = r'''<!doctype html>
               <div class="container">
                 <div class="header">
                   <h1>${symbol} — Historical Data</h1>
-                  <p>${freqTitle} Closing Prices &middot; Last 10 Years &middot; Newest First &middot; Includes Latest Close</p>
+                  <p>${freqTitle} Closing Prices &middot; Last 10 Years &middot; Newest First &middot; Includes Current Close</p>
                   <div class="freq-switch">
                     <button data-freq="quarterly" class="freq-btn ${freq === "quarterly" ? "active" : ""}">Quarterly</button>
                     <button data-freq="semiannual" class="freq-btn ${freq === "semiannual" ? "active" : ""}">Semiannual</button>
@@ -1026,7 +1043,7 @@ HTML_PAGE = r'''<!doctype html>
                     <thead>
                       <tr>
                         <th scope="col">Period</th>
-                        <th scope="col" class="period-value">Latest</th>
+                        <th scope="col" class="period-value">Current</th>
                         ${periodData.map((d) => `<th scope="col" class="period-value">${d.period}</th>`).join("")}
                       </tr>
                     </thead>
@@ -1044,7 +1061,7 @@ HTML_PAGE = r'''<!doctype html>
                     </tbody>
                   </table>
                 </div>
-                <p class="foot">Swipe horizontally to view every period. All figures are period-end closing prices in the listing currency. The <b>Latest</b> column shows the most recent trading day close (${latestHeader}).</p>
+                <p class="foot">Swipe horizontally to view every period. All figures are period-end closing prices in the listing currency. The <b>Current</b> column shows the most recent trading day close (${latestHeader}).</p>
               </div>
             </body>
             </html>`;
