@@ -269,7 +269,7 @@ HTML_PAGE = r'''<!doctype html>
           <button id="tickerSampleBtn" class="btn-action btn-ghost" type="button">Load sample</button>
           <button id="tickerClearBtn" class="btn-action btn-ghost" type="button">Clear</button>
         </div>
-        <p class="foot">Paste screener output containing standalone ticker lines. The extractor detects uppercase symbol lines, sorts them alphabetically, and formats them for clean spreadsheet pasting. Use <b>one per line</b> for a column, or <b>tab-separated</b> for a single row.</p>
+        <p class="foot">Paste screener output containing standalone ticker lines. The extractor detects standalone uppercase symbols and numeric ticker codes (2–6 digits), sorts them in strict A → Z / 0 → 9 order, and formats them for clean spreadsheet pasting. Use <b>one per line</b> for a column, or <b>tab-separated</b> for a single row.</p>
       </section>
     </main>
 
@@ -1371,8 +1371,8 @@ HTML_PAGE = r'''<!doctype html>
         var descBox = document.getElementById("tickerDesc");
         var tabbedBox = document.getElementById("tickerTabbed");
 
-        // Ticker line = alphabetic (2-6 chars) OR numeric (3-6 digits)
-        var TICKER_RE = /^([A-Z][A-Z0-9]{1,5}|\d{3,6})$/;
+        // Ticker line = alphabetic (2-6 chars) OR numeric (2-6 digits)
+        var TICKER_RE = /^([A-Z][A-Z0-9]{1,5}|\d{2,6})$/;
 
         // Common financial abbreviations that could appear on their own line.
         var NOISE = {
@@ -1583,9 +1583,8 @@ HTML_PAGE = r'''<!doctype html>
           var raw = inputEl.value;
           var list = extractTickers(raw);
 
-          list.sort(function (a, b) {
-            return a < b ? -1 : a > b ? 1 : 0;
-          });
+          // A → Z lexicographic order (digits first, then letters)
+          list.sort();
           if (descBox.checked) list.reverse();
 
           outputEl.value = tabbedBox.checked ? list.join("\t") : list.join("\n");
