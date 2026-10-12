@@ -1,9 +1,5 @@
 # FinSuite — Unified Tool Suite Documentation
 
-> **One-shot copy friendly:** the entire document below is a single Markdown file. Select-all → copy → save as `README.md`.
->
-> **Note:** This revision is fully consistent with `app.py` as of the current codebase. The **Text Case Converter** exposes exactly four transformations (`UPPERCASE`, `lowercase`, `Capitalize Word`, `Sentence case`) — the legacy `Toggle Case` action has been removed.
-
 ---
 
 ## Table of Contents
@@ -16,6 +12,7 @@
   - [4. Financial Shorthand Converter](#4-financial-shorthand-converter)
   - [5. Ticker Symbol Extractor](#5-ticker-symbol-extractor)
 - [Stock Researcher — Data Source Modes](#stock-researcher--data-source-modes)
+- [Local Historical Data Tab](#local-historical-data-tab)
 - [Global Core Layout Specifications](#global-core-layout-specifications)
 - [Prerequisites & Environment Setup](#prerequisites--environment-setup)
 - [How to Use the Suite](#how-to-use-the-suite)
@@ -55,10 +52,10 @@ Designed for investors, traders, and financial analysts to eliminate repetitive 
 - **Granular Data Point Filtering:** Choose precisely which dimensions to investigate (e.g., Latest News, Financial Ratios, Historical Trends, Balance Sheets, Income Statements, Cash Flow Metrics, or Dividend Trackers). This checklist applies to **TradingView** and **StockAnalysis** modes.
 - **Four Data Source Modes:** Switch the structural parsing logic between **Quarterly Package**, **Semester Package**, **TradingView**, or **StockAnalysis** depending on your data pipeline preferences.
 - **Package Modes (Quarterly & Semester):** One-click bundled workflows that ignore the granular checklist and launch a fixed set of **6 analytical tabs** in a single action — combining StockAnalysis, TradingView, and a locally rendered historical data view.
-  - **Quarterly Package (default):** TradingView financial statement URLs use the `FQ` period parameter.
-  - **Semester Package:** TradingView financial statement URLs use the `FH` period parameter. The local Historical Data popup still opens in **Quarterly** mode by default, and you can switch it to **Semiannual** inside the popup.
-- **Local Historical Data View:** The ⏳ **Historical Data** tab is rendered on the fly by the Flask backend. It queries Yahoo Finance daily closes (10 years), reduces them to period-end closes, and displays them in a **transposed, responsive table** with a **Latest Close** column always shown first (leftmost), followed by period columns. The tab includes an **in-popup Quarterly / Semiannual toggle** so the user can switch reporting frequency without returning to the main page.
-- **In-Popup Frequency Toggle:** The Historical Data popup carries its own **Quarterly** (default) and **Semiannual** toggle in the header. Clicking either button re-renders the table instantly using the already-cached daily data — no additional network request is issued.
+  - **Quarterly Package (default):** TradingView financial statement URLs use the `FQ` period parameter, and the local Historical Data popup opens in **Quarterly** mode.
+  - **Semester Package:** TradingView financial statement URLs use the `FH` period parameter, and the local Historical Data popup opens in **Semiannual** mode directly. You can still toggle back to Quarterly inside the popup.
+- **Local Historical Data View:** The ⏳ **Historical Data** tab is rendered on the fly by the Flask backend. It queries Yahoo Finance daily closes (10 years), reduces them to period-end closes, and displays them in a **transposed, responsive table** with a **Current** column always shown first (leftmost), followed by period columns. The tab includes an **in-popup Quarterly / Semiannual toggle** so the user can switch reporting frequency without returning to the main page.
+- **In-Popup Frequency Toggle:** The Historical Data popup carries its own **Quarterly** and **Semiannual** toggle in the blue header. Clicking either button re-renders the table instantly using the already-cached daily data — no additional network request is issued.
 - **Context-Aware Keyboard Shortcut:** Pressing `Enter` inside the Exchange Name field, Ticker Symbol field, or any non-textarea/non-button form control immediately triggers the research pipeline.
 - **Fail-Safe Manual Backup Registry:** Embedded link presentation tier ensures that if a modern browser blocks multi-popups, backup clickable links render seamlessly to bypass security restrictions.
 
@@ -79,7 +76,7 @@ A professional-grade typographical formatting workstation tailored for developer
   - `UPPERCASE`: Standardizes code variables, tickers, or headings into all capital letters.
   - `lowercase`: Converts strings to lowercase formats for normalized database ingestions.
   - `Capitalize Word`: Formats strings into title-case blocks by auto-capitalizing every segmented word.
-  - `Sentence case`: Corrects running prose by adjusting only the initial character of text sequences.
+  - `Sentence case`: Corrects running prose by adjusting only the initial character of the text sequence.
 - **One-Click Buffer Interface:** Directly interacts with the system clipboard APIs for frictionless, one-tap copy operations.
 - **Clear Action Feedback:** Displays a toast confirmation after clearing text from the workspace.
 
@@ -90,7 +87,7 @@ A lightweight, responsive module that converts shorthand financial values with *
 - **Suffix conversion** — Converts `K` (×1,000), `M` (×1,000,000), `B` (×1,000,000,000), and `T` (×1,000,000,000,000) to full integers.
 - **Percentage skipping** — Lines containing a `%` sign are ignored automatically.
 - **Horizontal paste** — Output values are separated by tabs (`\t`), so they paste across a row in Sheets.
-- **Reverse order** — Optional checkbox to reverse the output order, ideal for spreadsheets that list newest data on the left.
+- **Reverse order** — Optional checkbox (enabled by default) to reverse the output order, ideal for spreadsheets that list newest data on the left.
 - **Exact math** — Uses BigInt arithmetic to avoid floating-point errors with very large numbers.
 - **Invisible character handling** — Strips zero-width and bidirectional control characters that often come with copied data.
 - **Responsive design** — Works on desktop, tablet, and mobile.
@@ -118,52 +115,54 @@ A precision parsing module that ingests raw screener output and returns a clean,
 
 The Stock Multi-Tab Researcher supports four data-source modes, selectable through the **Data Source Support** radio panel.
 
-| Mode                  | Default | Checklist Used? | Tabs Opened | Description                                                                                                                                                                           |
-| --------------------- | :-----: | :-------------: | :---------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Quarterly Package** |   ✅    |       No        |      6      | Fixed multi-source bundle (StockAnalysis + TradingView + Local Historical Data) with TradingView financial statement period `FQ`. Ideal for quarterly deep-dive research.             |
-| **Semester Package**  |    —    |       No        |      6      | Fixed multi-source bundle (StockAnalysis + TradingView + Local Historical Data) with TradingView financial statement period `FH`. Local historical popup still defaults to Quarterly. |
-| **TradingView**       |    —    |       Yes       |    1 – 9    | Granular control; only the checklist-selected data points are opened. Tickers are normalized to uppercase, exchange codes are remapped.                                               |
-| **StockAnalysis**     |    —    |       Yes       |    1 – 9    | Granular control; only the checklist-selected data points are opened. Generated URLs use lowercase exchange/ticker values.                                                            |
+| Mode                  | Default | Checklist Used? | Tabs Opened | Description                                                                                                                                                                                 |
+| --------------------- | :-----: | :-------------: | :---------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Quarterly Package** |    ✓    |       No        |      6      | Fixed multi-source bundle (StockAnalysis + TradingView + Local Historical Data) with TradingView financial statement period `FQ`. Local Historical Data popup opens in **Quarterly** mode.  |
+| **Semester Package**  |    —    |       No        |      6      | Fixed multi-source bundle (StockAnalysis + TradingView + Local Historical Data) with TradingView financial statement period `FH`. Local Historical Data popup opens in **Semiannual** mode. |
+| **TradingView**       |    —    |       Yes       |    1 – 9    | Granular control; only the checklist-selected data points are opened. Tickers are normalized to uppercase, exchange codes are remapped.                                                     |
+| **StockAnalysis**     |    —    |       Yes       |    1 – 9    | Granular control; only the checklist-selected data points are opened. Generated URLs use lowercase exchange/ticker values.                                                                  |
 
 ### Package Modes — Fixed 6-Tab Bundle
 
 When **Quarterly Package** or **Semester Package** is selected, the data-point checklist is dimmed and disabled, and clicking **Open All Selected Tabs** immediately launches the following six analytical views:
 
-| #   | Data Point          | Provider                      | Purpose                                                        | Period Parameter                                                           |
-| --- | ------------------- | ----------------------------- | -------------------------------------------------------------- | -------------------------------------------------------------------------- |
-| 1   | 🏢 Overview         | StockAnalysis                 | Company profile, sector, business summary                      | —                                                                          |
-| 2   | 🏢 Overview         | TradingView                   | Company profile, sector, business summary                      | —                                                                          |
-| 3   | 📑 Income Statement | TradingView                   | Income statement                                               | `FQ` for Quarterly Package / `FH` for Semester Package                     |
-| 4   | ⚖️ Balance Sheet    | TradingView                   | Balance sheet                                                  | `FQ` for Quarterly Package / `FH` for Semester Package                     |
-| 5   | 📊 Ratios           | TradingView                   | Statistics and valuation ratios                                | `FQ` for Quarterly Package / `FH` for Semester Package                     |
-| 6   | ⏳ Historical Data  | Local (Flask + Yahoo Finance) | Latest close + Quarterly / Semiannual closes over the last 10y | Opens Quarterly by default; can be switched to Semiannual inside the popup |
+| #   | Data Point          | Provider                      | Purpose                                                         | Period Parameter                                                  |
+| --- | ------------------- | ----------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
+| 1   | 🏢 Overview         | StockAnalysis                 | Company profile, sector, business summary                       | —                                                                 |
+| 2   | 🏢 Overview         | TradingView                   | Company profile, sector, business summary                       | —                                                                 |
+| 3   | ⏳ Historical Data  | Local (Flask + Yahoo Finance) | Current close + Quarterly / Semiannual closes over the last 10y | Quarterly for Quarterly Package / Semiannual for Semester Package |
+| 4   | 📑 Income Statement | TradingView                   | Income statement                                                | `FQ` (Quarterly) / `FH` (Semester)                                |
+| 5   | ⚖️ Balance Sheet    | TradingView                   | Balance sheet                                                   | `FQ` (Quarterly) / `FH` (Semester)                                |
+| 6   | 📊 Ratios           | TradingView                   | Statistics and valuation ratios                                 | `FQ` (Quarterly) / `FH` (Semester)                                |
 
-Package modes are intentionally unconfigurable on the main page — they are fixed reconnaissance bundles designed so that switching between providers is not necessary when you simply want comprehensive coverage of a ticker. The locally rendered **Historical Data** tab is unique to Package modes and is opened via a client-side fetch to the Flask `/proxy` endpoint. Frequency (Quarterly vs. Semiannual) is chosen **inside the popup**, not on the main page.
+Package modes are intentionally unconfigurable on the main page — they are fixed reconnaissance bundles designed so that switching between providers is not necessary when you simply want comprehensive coverage of a ticker. The locally rendered **Historical Data** tab is unique to Package modes and is opened via a client-side fetch to the Flask `/proxy` endpoint.
 
-### Local Historical Data Tab
+---
+
+## Local Historical Data Tab
 
 When the ⏳ **Historical Data** target is executed (only available inside Package modes), the application opens a fresh browser tab and performs the following:
 
-1. Resolves the ticker to a Yahoo Finance symbol using the exchange suffix map (e.g., `HKG → .HK`).
+1. Resolves the ticker to a Yahoo Finance symbol using the exchange suffix map (e.g., `HKEX → .HK`).
 2. Calls the Flask `/proxy?symbol=…&range=10y&interval=1d` endpoint, which forwards the request to Yahoo Finance with a desktop User-Agent header.
 3. Caches the returned daily closes in memory — the data is fetched **once per popup**.
 4. Reduces the daily data to **period-end closing prices** based on the currently selected frequency:
-   - **Quarterly (default)** — one data point per calendar quarter (Mar / Jun / Sep / Dec).
+   - **Quarterly** — one data point per calendar quarter (Mar / Jun / Sep / Dec).
    - **Semiannual** — one data point per half-year, keeping only **June** and **December** closes.
-5. Renders a **transposed, responsive table** with a **Latest Close** column always shown first (leftmost), followed by the most recent period column to the right:
+5. Renders a **transposed, responsive table** with a **Current** column always shown first (leftmost), followed by the most recent period column to the right:
 
-   | **Period**      | **Latest** | 9M2026     | 1H2026     | 1Q2026     | FY2025     | 9M2025     | 1H2025     | 1Q2025     |
-   | --------------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- |
-   | **Actual Date** | 2026-09-22 | 2026-09-18 | 2026-06-30 | 2026-03-31 | 2025-12-30 | 2025-09-30 | 2025-06-30 | 2025-03-27 |
-   | **Close Price** | 6,200.00   | 6,300.00   | 5,550.00   | 6,450.00   | 8,075.00   | 7,625.00   | 8,675.00   | 8,500.00   |
-   - **Latest column:** Shows the most recent trading day's actual date and close.
-   - **Row 1 — Period (header):** Compact labels derived from the period-end month:
+   | **Period**      | **Current** | 9M2026     | 1H2026     | 1Q2026     | FY2025     | 9M2025     | 1H2025     | 1Q2025     |
+   | --------------- | ----------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- | ---------- |
+   | **Actual Date** | 2026-09-22  | 2026-09-18 | 2026-06-30 | 2026-03-31 | 2025-12-30 | 2025-09-30 | 2025-06-30 | 2025-03-27 |
+   | **Close Price** | 6,200.00    | 6,300.00   | 5,550.00   | 6,450.00   | 8,075.00   | 7,625.00   | 8,675.00   | 8,500.00   |
+   - **Current column:** Shows the most recent trading day's actual date and close.
+   - **Period row (header):** Compact labels derived from the period-end month:
      - March → `1Q<year>` (e.g., `1Q2026`)
      - June → `1H<year>` (e.g., `1H2026`)
      - September → `9M<year>` (e.g., `9M2026`)
      - December → `FY<year>` (e.g., `FY2025`)
-   - **Row 2 — Actual Date:** Actual trading date of the period-end close.
-   - **Row 3 — Close Price:** Period-end closing price in the listing currency.
+   - **Actual Date row:** Actual trading date of the period-end close.
+   - **Close Price row:** Period-end closing price in the listing currency.
    - The leftmost label column is **sticky** so it stays visible while scrolling horizontally.
    - The table uses a 💼 favicon and adapts to `prefers-color-scheme` (light/dark).
 
@@ -172,17 +171,17 @@ When the ⏳ **Historical Data** target is executed (only available inside Packa
 The Historical Data popup carries its own frequency selector in the blue header, positioned below the title:
 
 ```text
-┌──────────────────────────────────────────────────────┐
-│  BBCA.JK — Historical Data                           │
-│  Quarter-End Closing Prices · Last 10 Years · …      │
-│  ┌───────────┬────────────┐                          │
-│  │ Quarterly │ Semiannual │  ← click to switch       │
-│  └───────────┴────────────┘                          │
-└──────────────────────────────────────────────────────┘
+┌──────────────────────────────────────────────────────────┐
+│  0700.HK — Historical Data                               │
+│  Quarter-End Closing Prices · Last 10 Years · …          │
+│  ┌───────────┬─────────────┐                             │
+│  │ Quarterly │ Semiannual  │  ← click to switch          │
+│  └───────────┴─────────────┘                             │
+└──────────────────────────────────────────────────────────┘
 ```
 
-- **Quarterly** is active by default and displays every quarter-end close.
-- Clicking **Semiannual** immediately re-renders the table to show only June and December closes.
+- The active frequency is preselected based on the chosen Package mode.
+- Clicking the other button immediately re-renders the table using cached data.
 - The switch is **instant and offline** — no additional request to Flask or Yahoo Finance is made.
 - Users may toggle back and forth freely without returning to the main application page.
 
@@ -339,14 +338,14 @@ Then open `http://localhost:5000` in your browser.
 
 ## Keyboard Shortcuts
 
-| Shortcut                                                                                            | Context                   | Action                                                          |
-| --------------------------------------------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------- |
-| `Enter`                                                                                             | Exchange Name field       | Triggers **Open All Selected Tabs**                             |
-| `Enter`                                                                                             | Ticker Symbol field       | Triggers **Open All Selected Tabs**                             |
-| `Enter`                                                                                             | Radio/checkbox option     | Triggers **Open All Selected Tabs**                             |
-| `Enter`                                                                                             | Focused button            | Activates that specific button                                  |
-| `Enter`                                                                                             | Inside any textarea       | Inserts a new line (default browser behaviour)                  |
-| `Ctrl + R` / `Cmd + R` / `Ctrl + Shift + R` / `Cmd + Shift + R` / `F5` / `Ctrl + F5` / `Shift + F5` | Anywhere on the main page | Blocked — refresh is intercepted to protect click-counter state |
+| Shortcut                                                                            | Context                   | Action                                                          |
+| ----------------------------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------- |
+| `Enter`                                                                             | Exchange Name field       | Triggers **Open All Selected Tabs**                             |
+| `Enter`                                                                             | Ticker Symbol field       | Triggers **Open All Selected Tabs**                             |
+| `Enter`                                                                             | Radio/checkbox option     | Triggers **Open All Selected Tabs**                             |
+| `Enter`                                                                             | Focused button            | Activates that specific button                                  |
+| `Enter`                                                                             | Inside any textarea       | Inserts a new line (default browser behaviour)                  |
+| `Ctrl+R` / `Cmd+R` / `Ctrl+Shift+R` / `Cmd+Shift+R` / `F5` / `Ctrl+F5` / `Shift+F5` | Anywhere on the main page | Blocked — refresh is intercepted to protect click-counter state |
 
 > **Note:** Modern browsers may treat hard refresh shortcuts as a user-safety escape hatch and may not allow JavaScript to fully block them. For guaranteed prevention, run the app in kiosk mode or as a PWA/Electron shell. Inside the Historical Data popup, refresh shortcuts are **not** intercepted.
 
@@ -359,7 +358,7 @@ Then open `http://localhost:5000` in your browser.
 - **Suffix conversion** – `K` (×1,000), `M` (×1,000,000), `B` (×1,000,000,000), `T` (×1,000,000,000,000).
 - **Percentage skipping** – Lines containing `%` are ignored.
 - **Horizontal paste** – Output values are tab-separated.
-- **Reverse order** – Optional checkbox.
+- **Reverse order** – Optional checkbox (checked by default).
 - **Exact math** – BigInt arithmetic.
 - **Invisible character handling** – Strips zero-width and bidirectional control characters.
 - **Responsive design** – Desktop, tablet, mobile.
@@ -409,10 +408,10 @@ Then open `http://localhost:5000` in your browser.
 - Percentage lines are omitted.
 - All results are joined with a tab character (`\t`).
 
-**Example output:**
+**Example output (with default Reverse order checked):**
 
 ```text
-9,260,000,000,000	9,700,000,000,000	10,330,000,000,000	9,900,000,000,000	10,550,000,000,000	10,060,000,000,000	10,120,000,000,000	11,640,000,000,000
+11,640,000,000,000	10,120,000,000,000	10,060,000,000,000	10,550,000,000,000	9,900,000,000,000	10,330,000,000,000	9,700,000,000,000	9,260,000,000,000
 ```
 
 ### Reverse Order Option
@@ -444,7 +443,7 @@ Then open `http://localhost:5000` in your browser.
 - **Flexible output shape** — One symbol per line or tab-separated single row.
 - **Live statistics** — A badge above the output shows total count and sort direction.
 - **One-click copy** — Pushes the entire output to your clipboard.
-- **Sample loader** — Drops in a real Hong Kong electronic technology screener export.
+- **Sample loader** — Drops in a real export.
 - **Zero dependencies** — Vanilla JavaScript only.
 
 ### Ticker Extractor Quick Start
@@ -477,7 +476,7 @@ Then open `http://localhost:5000` in your browser.
 
 | Option                         | Default | Effect                                            |
 | ------------------------------ | ------- | ------------------------------------------------- |
-| **Remove duplicates**          | ✅ On   | Only the first occurrence of each ticker is kept. |
+| **Remove duplicates**          | ✓ On    | Only the first occurrence of each ticker is kept. |
 | **Sort Z → A**                 | Off     | Reverses the alphabetical sort order.             |
 | **Tab-separated (single row)** | Off     | Joins the output with `\t` instead of `\n`.       |
 
@@ -547,7 +546,6 @@ For older browsers, the fallback copy method may work, but BigInt support is ess
 | Historical table dates not aligned with prices | Horizontal scrolling is expected             | The table is intentionally transposed. The leftmost label column stays sticky.                                 |
 | Quarterly / Semiannual toggle not visible      | Browser cached the old popup template        | Open the main page in an incognito window or reload the page.                                                  |
 | Semiannual mode shows fewer rows than expected | Only June & December are kept                | This is by design — Semiannual mode keeps exactly the two half-year ends per year.                             |
-| Latest column style looks different            | Browser cache                                | Reload the page. The Latest column is styled identically to all other columns in the current release.          |
 | Ticker Extractor returns 0 tickers             | Input format doesn't match detection rules   | Click **Load sample** to compare shapes. Ensure ticker lines are followed by a company name or the `D` marker. |
 | Ticker Extractor includes false positives      | Header word not in the noise list            | Add the word to the `NOISE` object inside the Ticker Symbol Extractor IIFE.                                    |
 | Ticker Extractor misses some symbols           | Symbol format not matched by the regex       | Extend `TICKER_RE` to include the missing format.                                                              |

@@ -720,9 +720,11 @@ HTML_PAGE = r'''<!doctype html>
         const ex = saExchangeCode(exchangeCode).toLowerCase();
         let tk = String(ticker).toLowerCase();
 
-        // ── Hong Kong 3-digit tickers must be padded to 4 digits ──
-        if (tv === "HKEX" && /^\d{3}$/.test(tk)) {
-          tk = "0" + tk;
+        // ── Hong Kong tickers: pad to 4 digits ──
+        //    2-digit  → prepend "00"
+        //    3-digit  → prepend "0"
+        if (tv === "HKEX" && /^\d{2,3}$/.test(tk)) {
+          tk = tk.padStart(4, "0");
         }
 
         const usExchanges = ["otc", "nasdaq", "nyse", "amex"];
@@ -892,9 +894,11 @@ HTML_PAGE = r'''<!doctype html>
         const suffix = YAHOO_SUFFIX_MAP[exchangeCode.toUpperCase()] || "";
         let baseTicker = ticker.toUpperCase();
 
-        // ── Hong Kong 3-digit tickers must be padded to 4 digits ──
-        if (exchangeCode.toUpperCase() === "HKEX" && /^\d{3}$/.test(baseTicker)) {
-          baseTicker = "0" + baseTicker;
+        // ── Hong Kong tickers: pad to 4 digits ──
+        //    2-digit  → prepend "00"
+        //    3-digit  → prepend "0"
+        if (exchangeCode.toUpperCase() === "HKEX" && /^\d{2,3}$/.test(baseTicker)) {
+          baseTicker = baseTicker.padStart(4, "0");
         }
 
         const symbol = baseTicker + suffix;
