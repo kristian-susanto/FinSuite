@@ -76,6 +76,8 @@ HTML_PAGE = r'''<!doctype html>
       .btn-danger:hover { opacity: 0.9; }
       .btn-success { background-color: var(--success); color: #ffffff; }
       .btn-success:hover { opacity: 0.9; }
+      .btn-warning { background-color: #f59e0b; color: #ffffff; }
+      .btn-warning:hover { opacity: 0.9; }
       .btn-ghost { background-color: var(--bg-card); color: var(--text-main); border: 1px solid var(--border); }
       .btn-ghost:hover { background-color: var(--radio-bg); }
       #linkContainer { margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border); display: none; }
@@ -86,7 +88,18 @@ HTML_PAGE = r'''<!doctype html>
       .hint { font-size: 11px; color: var(--text-secondary); text-align: center; margin-top: 10px; }
       .counter-display { font-size: 3.5rem; font-weight: 800; color: var(--counter-color);
         margin: 10px 0; text-align: center; transition: transform 0.1s ease; }
-      .counter-buttons { display: flex; gap: 10px; }
+      .counter-header { display: flex; justify-content: space-between; align-items: center;
+        gap: 10px; flex-wrap: wrap; border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem; margin-bottom: 1.2rem; }
+      .counter-header h2 { border-bottom: none; padding-bottom: 0; margin-bottom: 0; }
+      .counter-buttons { display: flex; gap: 6px; flex-wrap: wrap; }
+      .counter-buttons .btn-action { padding: 6px 12px; font-size: 13px;
+        font-weight: 700; min-width: 40px; line-height: 1.2; }
+      .counter-buttons .btn-action.plus-btn { font-size: 20px; padding: 4px 14px; }
+      @media (max-width: 380px) {
+        .counter-buttons .btn-action { padding: 5px 9px; font-size: 12px; min-width: 34px; }
+        .counter-buttons .btn-action.plus-btn { font-size: 17px; padding: 3px 10px; }
+      }
       .case-card textarea { width: 100%; height: 120px; padding: 12px;
         border: 2px solid var(--border); border-radius: 8px; font-size: 14px;
         background: var(--input-bg); color: var(--text-main); margin-bottom: 10px;
@@ -153,7 +166,6 @@ HTML_PAGE = r'''<!doctype html>
             </div>
           </div>
           <div class="checkbox-grid" id="checkboxGrid">
-            <label class="check-option"><input type="checkbox" value="news" /> Latest News</label>
             <label class="check-option"><input type="checkbox" value="overview" /> Overview</label>
             <label class="check-option"><input type="checkbox" value="history" /> Historical Data</label>
             <label class="check-option"><input type="checkbox" value="income" /> Income Statement</label>
@@ -173,12 +185,7 @@ HTML_PAGE = r'''<!doctype html>
             <label class="radio-option"><input type="radio" name="source" value="stockanalysis" /> StockAnalysis</label>
           </div>
           <p class="source-note">
-            <b>Package mode</b> opens a fixed bundle of <b>6 tabs</b>:
-            <br />• 🏢 Overview — StockAnalysis &amp; TradingView
-            <br />• ⏳ Historical Data — Python (yfinance)
-            <br />• 📑 Income Statement — TradingView
-            <br />• ⚖️ Balance Sheet — TradingView
-            <br />• 📊 Ratios — TradingView
+            <b>Package mode</b> opens a fixed bundle of <b>6 tabs</b>: Overview (StockAnalysis &amp; TradingView), Historical Data (Python yfinance), Income Statement (TradingView), Balance Sheet (TradingView), and Ratios (TradingView).
           </p>
         </div>
 
@@ -192,13 +199,15 @@ HTML_PAGE = r'''<!doctype html>
 
       <div class="side-panel">
         <section class="card">
-          <h2>🖱️ Click Counter</h2>
-          <div class="counter-display" id="counter-value">0</div>
-          <div class="counter-buttons">
-            <button class="btn-action btn-primary" id="click-btn" style="flex: 2">CLICK HERE</button>
-            <button class="btn-action btn-ghost" id="decrement-btn" style="flex: 1; font-size: 20px; font-weight: 800" title="Decrement by 1">−</button>
-            <button class="btn-action btn-danger" id="reset-counter-btn" style="flex: 1">Reset</button>
+          <div class="counter-header">
+            <h2>🖱️ Click Counter</h2>
+            <div class="counter-buttons">
+              <button class="btn-action btn-primary plus-btn" id="click-btn" title="Increment by 1">+</button>
+              <button class="btn-action btn-warning" id="decrement-btn" title="Decrement by 1">−</button>
+              <button class="btn-action btn-danger" id="reset-counter-btn" title="Reset counter">Reset</button>
+            </div>
           </div>
+          <div class="counter-display" id="counter-value">0</div>
         </section>
         <section class="card case-card">
           <h2>🔤 Text Case Converter</h2>
@@ -759,7 +768,6 @@ HTML_PAGE = r'''<!doctype html>
         const tk = String(ticker).toUpperCase();
         const base = `https://www.tradingview.com/symbols/${tvEx}-${tk}`;
         return [
-          { id: "news", name: "📰 Latest News", url: `https://www.google.com/search?q=${tvEx}:%20${tk}&tbm=nws` },
           { id: "overview", name: "🏢 Overview", url: `${base}/` },
           { id: "history", name: "⏳ Historical Data", url: `${base}/?timeframe=120M` },
           { id: "income", name: "📑 Income Statement", url: `${base}/financials-income-statement/?statements-period=FQ&selected=total_revenue%2Cnet_revenue%2Cnet_income%2Cdiluted_shares_outstanding` },
@@ -776,7 +784,6 @@ HTML_PAGE = r'''<!doctype html>
         const tk = String(ticker).toLowerCase();
         const baseUrl = saBaseUrl(ex, tk);
         return [
-          { id: "news", name: "📰 Latest News", url: `https://www.google.com/search?q=${ex}:%20${tk}&tbm=nws` },
           { id: "overview", name: "🏢 Overview", url: `${baseUrl}/company` },
           { id: "history", name: "⏳ Historical Data", url: `${baseUrl}/history/` },
           { id: "income", name: "📑 Income Statement", url: `${baseUrl}/financials/income-statement/?p=quarterly` },
@@ -995,6 +1002,7 @@ HTML_PAGE = r'''<!doctype html>
                 text-align:center; color:var(--text);
                 font-size: 0.8rem; font-weight:600;
                 letter-spacing:0; text-transform:none;
+                font-variant-numeric: normal;
               }
               thead th.latest-head{
                 background: var(--stripe); color: var(--muted);
