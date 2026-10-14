@@ -1383,9 +1383,12 @@ HTML_PAGE = r'''<!doctype html>
         var TICKER_RE = /^([A-Z][A-Z0-9]{1,5}|\d{2,6})$/;
 
         // Common financial abbreviations that could appear on their own line.
+        // Includes Depositary Receipt markers (DR, ADR, GDR, IDR, CDR, EDR, DDR)
+        // which are NOT stock tickers and must be ignored.
         var NOISE = {
           TTM: 1, EPS: 1, YOY: 1, QOQ: 1, ETF: 1, IPO: 1, CEO: 1, CFO: 1,
-          ROE: 1, ROA: 1, ROI: 1, NAV: 1, ALL: 1, NONE: 1, NA: 1
+          ROE: 1, ROA: 1, ROI: 1, NAV: 1, ALL: 1, NONE: 1, NA: 1,
+          DR: 1, ADR: 1, GDR: 1, IDR: 1, CDR: 1, EDR: 1, DDR: 1
         };
 
         var SAMPLE = [
