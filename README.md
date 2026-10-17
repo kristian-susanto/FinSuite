@@ -51,7 +51,7 @@ Designed for investors, traders, and financial analysts to eliminate repetitive 
 - **Cross-Global Exchange Resolution System:** Out-of-the-box support for international markets including NYSE, HKG, SGX, SSE, TYO, and more.
 - **Granular Data Point Filtering:** Choose precisely which dimensions to investigate (e.g., Latest News, Financial Ratios, Historical Trends, Balance Sheets, Income Statements, Cash Flow Metrics, or Dividend Trackers). This checklist applies to **TradingView** and **StockAnalysis** modes.
 - **Four Data Source Modes:** Switch the structural parsing logic between **Quarterly Package**, **Semester Package**, **TradingView**, or **StockAnalysis** depending on your data pipeline preferences.
-- **Package Modes (Quarterly & Semester):** One-click bundled workflows that ignore the granular checklist and launch a fixed set of **6 analytical tabs** in a single action — combining StockAnalysis, TradingView, and a locally rendered historical data view.
+- **Package Modes (Quarterly & Semester):** One-click bundled workflows that ignore the granular checklist and launch a fixed set of **4 analytical tabs** in a single action — combining TradingView financial statements with a locally rendered historical data view.
   - **Quarterly Package (default):** TradingView financial statement URLs use the `FQ` period parameter, and the local Historical Data popup opens in **Quarterly** mode.
   - **Semester Package:** TradingView financial statement URLs use the `FH` period parameter, and the local Historical Data popup opens in **Semiannual** mode directly. You can still toggle back to Quarterly inside the popup.
 - **Local Historical Data View:** The ⏳ **Historical Data** tab is rendered on the fly by the Flask backend. It queries Yahoo Finance daily closes (10 years), reduces them to period-end closes, and displays them in a **transposed, responsive table** with a **Current** column always shown first (leftmost), followed by period columns. The tab includes an **in-popup Quarterly / Semiannual toggle** so the user can switch reporting frequency without returning to the main page.
@@ -115,27 +115,25 @@ A precision parsing module that ingests raw screener output and returns a clean,
 
 The Stock Multi-Tab Researcher supports four data-source modes, selectable through the **Data Source Support** radio panel.
 
-| Mode                  | Default | Checklist Used? | Tabs Opened | Description                                                                                                                                                                                 |
-| --------------------- | :-----: | :-------------: | :---------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| **Quarterly Package** |    ✓    |       No        |      6      | Fixed multi-source bundle (StockAnalysis + TradingView + Local Historical Data) with TradingView financial statement period `FQ`. Local Historical Data popup opens in **Quarterly** mode.  |
-| **Semester Package**  |    —    |       No        |      6      | Fixed multi-source bundle (StockAnalysis + TradingView + Local Historical Data) with TradingView financial statement period `FH`. Local Historical Data popup opens in **Semiannual** mode. |
-| **TradingView**       |    —    |       Yes       |    1 – 9    | Granular control; only the checklist-selected data points are opened. Tickers are normalized to uppercase, exchange codes are remapped.                                                     |
-| **StockAnalysis**     |    —    |       Yes       |    1 – 9    | Granular control; only the checklist-selected data points are opened. Generated URLs use lowercase exchange/ticker values.                                                                  |
+| Mode                  | Default | Checklist Used? | Tabs Opened | Description                                                                                                                                                               |
+| --------------------- | :-----: | :-------------: | :---------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **Quarterly Package** |    ✓    |       No        |      4      | Fixed bundle (Local Historical Data + TradingView financials) with TradingView financial statement period `FQ`. Local Historical Data popup opens in **Quarterly** mode.  |
+| **Semester Package**  |    —    |       No        |      4      | Fixed bundle (Local Historical Data + TradingView financials) with TradingView financial statement period `FH`. Local Historical Data popup opens in **Semiannual** mode. |
+| **TradingView**       |    —    |       Yes       |    1 – 9    | Granular control; only the checklist-selected data points are opened. Tickers are normalized to uppercase, exchange codes are remapped.                                   |
+| **StockAnalysis**     |    —    |       Yes       |    1 – 9    | Granular control; only the checklist-selected data points are opened. Generated URLs use lowercase exchange/ticker values.                                                |
 
-### Package Modes — Fixed 6-Tab Bundle
+### Package Modes — Fixed 4-Tab Bundle
 
-When **Quarterly Package** or **Semester Package** is selected, the data-point checklist is dimmed and disabled, and clicking **Open All Selected Tabs** immediately launches the following six analytical views:
+When **Quarterly Package** or **Semester Package** is selected, the data-point checklist is dimmed and disabled, and clicking **Open All Selected Tabs** immediately launches the following four analytical views:
 
 | #   | Data Point          | Provider                      | Purpose                                                         | Period Parameter                                                  |
 | --- | ------------------- | ----------------------------- | --------------------------------------------------------------- | ----------------------------------------------------------------- |
-| 1   | 🏢 Overview         | StockAnalysis                 | Company profile, sector, business summary                       | —                                                                 |
-| 2   | 🏢 Overview         | TradingView                   | Company profile, sector, business summary                       | —                                                                 |
-| 3   | ⏳ Historical Data  | Local (Flask + Yahoo Finance) | Current close + Quarterly / Semiannual closes over the last 10y | Quarterly for Quarterly Package / Semiannual for Semester Package |
-| 4   | 📑 Income Statement | TradingView                   | Income statement                                                | `FQ` (Quarterly) / `FH` (Semester)                                |
-| 5   | ⚖️ Balance Sheet    | TradingView                   | Balance sheet                                                   | `FQ` (Quarterly) / `FH` (Semester)                                |
-| 6   | 📊 Ratios           | TradingView                   | Statistics and valuation ratios                                 | `FQ` (Quarterly) / `FH` (Semester)                                |
+| 1   | ⏳ Historical Data  | Local (Flask + Yahoo Finance) | Current close + Quarterly / Semiannual closes over the last 10y | Quarterly for Quarterly Package / Semiannual for Semester Package |
+| 2   | 📑 Income Statement | TradingView                   | Income statement                                                | `FQ` (Quarterly) / `FH` (Semester)                                |
+| 3   | ⚖️ Balance Sheet    | TradingView                   | Balance sheet                                                   | `FQ` (Quarterly) / `FH` (Semester)                                |
+| 4   | 📊 Ratios           | TradingView                   | Statistics and valuation ratios                                 | `FQ` (Quarterly) / `FH` (Semester)                                |
 
-Package modes are intentionally unconfigurable on the main page — they are fixed reconnaissance bundles designed so that switching between providers is not necessary when you simply want comprehensive coverage of a ticker. The locally rendered **Historical Data** tab is unique to Package modes and is opened via a client-side fetch to the Flask `/proxy` endpoint.
+Package modes are intentionally unconfigurable on the main page — they are fixed reconnaissance bundles designed for a focused financial review that combines TradingView statements with a locally rendered historical data view. The locally rendered **Historical Data** tab is unique to Package modes and is opened via a client-side fetch to the Flask `/proxy` endpoint.
 
 ---
 
@@ -504,6 +502,7 @@ You can easily modify the tools by editing the source in `app.py`:
 - **Multipliers (Financial Shorthand Converter)** — Adjust the `MULT` object.
 - **Placeholder text** — Update `placeholder` attributes on any textarea.
 - **Styling** — All CSS is embedded in the `<style>` block inside `HTML_PAGE`.
+- **Package tab bundle** — Edit `buildPackageTargets()` to add or remove bundled tabs. The current fixed bundle is 4 tabs: Historical Data (local), Income Statement, Balance Sheet, and Ratios (all TradingView).
 - **Historical table layout** — The transposed Historical Data table is generated inside `openHistoryTab()`.
 - **Default historical frequency** — Modify `let freq = (initialFreq === "semiannual") ? "semiannual" : "quarterly";`.
 - **Quarterly / Semiannual grouping logic** — Handled inside `processPeriodData(timestamps, closes, freq)`.
@@ -540,7 +539,7 @@ For older browsers, the fallback copy method may work, but BigInt support is ess
 | Reverse order not working                      | Checkbox state                               | Make sure the checkbox is checked if you need reversed output.                                                 |
 | Large numbers lose precision                   | JavaScript number limitations                | The tool uses BigInt, so precision is maintained.                                                              |
 | `Enter` does not trigger search                | Focused inside a `<textarea>`                | Textareas intentionally keep native newline behaviour. Move focus to the Exchange/Ticker field.                |
-| Package mode launched too few tabs             | Fixed bundle of 6 tabs is expected           | This is by design. Switch to StockAnalysis or TradingView mode for granular control.                           |
+| Package mode launched unexpected tab count     | Fixed bundle of 4 tabs is expected           | This is by design. Switch to StockAnalysis or TradingView mode for granular control.                           |
 | Historical Data tab shows error                | Flask `/proxy` unreachable or ticker invalid | Ensure `python app.py` is running and the page is loaded from `http://localhost:5000`.                         |
 | Historical Data favicon still shows old emoji  | Browser favicon cache                        | Open the popup in an incognito window, or reload the main page.                                                |
 | Historical table dates not aligned with prices | Horizontal scrolling is expected             | The table is intentionally transposed. The leftmost label column stays sticky.                                 |

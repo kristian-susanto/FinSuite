@@ -185,7 +185,7 @@ HTML_PAGE = r'''<!doctype html>
             <label class="radio-option"><input type="radio" name="source" value="stockanalysis" /> StockAnalysis</label>
           </div>
           <p class="source-note">
-            <b>Package mode</b> opens a fixed bundle of <b>6 tabs</b>: Overview (StockAnalysis &amp; TradingView), Historical Data (Python yfinance), Income Statement (TradingView), Balance Sheet (TradingView), and Ratios (TradingView).
+            <b>Package mode</b> opens a fixed bundle of <b>4 tabs</b>: Historical Data (Python yfinance), Income Statement (TradingView), Balance Sheet (TradingView), and Ratios (TradingView).
           </p>
         </div>
 
@@ -749,13 +749,10 @@ HTML_PAGE = r'''<!doctype html>
       }
 
       function buildPackageTargets(exchangeCode, ticker, isSemester) {
-        const sa = saBaseUrl(exchangeCode, ticker);
         const tv = `https://www.tradingview.com/symbols/${tvSymbol(exchangeCode, ticker)}`;
         // FH for Semester, FQ for Quarterly
         const period = isSemester ? "FH" : "FQ";
         return [
-          { id: "pkg-overview-sa", name: "🏢 Overview — StockAnalysis", url: `${sa}/company` },
-          { id: "pkg-overview-tv", name: "🏢 Overview — TradingView", url: `${tv}/` },
           { id: "pkg-history-py", name: "⏳ Historical Data — Python (yfinance quarterly / semiannual closes)", url: "local", local: true },
           { id: "pkg-income-tv", name: "📑 Income Statement — TradingView", url: `${tv}/financials-income-statement/?statements-period=${period}&selected=total_revenue%2Cnet_revenue%2Cnet_income%2Cdiluted_shares_outstanding` },
           { id: "pkg-balance-tv", name: "⚖️ Balance Sheet — TradingView", url: `${tv}/financials-balance-sheet/?statements-period=${period}&selected=total_equity` },
