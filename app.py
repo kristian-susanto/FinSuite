@@ -730,9 +730,10 @@ HTML_PAGE = r'''<!doctype html>
         let tk = String(ticker).toLowerCase();
 
         // ── Hong Kong tickers: pad to 4 digits ──
+        //    1-digit  → prepend "000"
         //    2-digit  → prepend "00"
         //    3-digit  → prepend "0"
-        if (tv === "HKEX" && /^\d{2,3}$/.test(tk)) {
+        if (tv === "HKEX" && /^\d{1,3}$/.test(tk)) {
           tk = tk.padStart(4, "0");
         }
 
@@ -899,9 +900,10 @@ HTML_PAGE = r'''<!doctype html>
         let baseTicker = ticker.toUpperCase();
 
         // ── Hong Kong tickers: pad to 4 digits ──
+        //    1-digit  → prepend "000"
         //    2-digit  → prepend "00"
         //    3-digit  → prepend "0"
-        if (exchangeCode.toUpperCase() === "HKEX" && /^\d{2,3}$/.test(baseTicker)) {
+        if (exchangeCode.toUpperCase() === "HKEX" && /^\d{1,3}$/.test(baseTicker)) {
           baseTicker = baseTicker.padStart(4, "0");
         }
 
