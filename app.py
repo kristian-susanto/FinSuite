@@ -260,8 +260,8 @@ HTML_PAGE = r'''<!doctype html>
         <h2>📋 Ticker Symbol Extractor</h2>
         <div class="converter-grid">
           <div class="panel">
-            <div class="panel-head"><label for="tickerInput">Input — paste screener data</label><span class="panel-meta">auto-detects tickers</span></div>
-            <textarea id="tickerInput" spellcheck="false" placeholder="Paste rows copied from your screener here (StockAnalysis, TradingView, etc.)…"></textarea>
+            <div class="panel-head"><label for="tickerInput">Input — paste data</label><span class="panel-meta">auto-detects tickers</span></div>
+            <textarea id="tickerInput" spellcheck="false" placeholder="Paste rows copied here…"></textarea>
           </div>
           <div class="panel">
             <div class="panel-head"><label for="tickerOutput">Output — sorted tickers</label><span class="panel-meta" id="tickerStats"></span></div>
@@ -278,7 +278,7 @@ HTML_PAGE = r'''<!doctype html>
           <button id="tickerSampleBtn" class="btn-action btn-ghost" type="button">Load sample</button>
           <button id="tickerClearBtn" class="btn-action btn-ghost" type="button">Clear</button>
         </div>
-        <p class="foot">Paste screener output containing standalone ticker lines. The extractor detects standalone uppercase symbols and numeric ticker codes (2–6 digits), sorts them in strict A → Z / 0 → 9 order, and formats them for clean spreadsheet pasting. Use <b>one per line</b> for a column, or <b>tab-separated</b> for a single row.</p>
+        <p class="foot">Paste output containing standalone ticker lines. The extractor detects standalone uppercase symbols and numeric ticker codes (2–6 digits), sorts them in strict A → Z / 0 → 9 order, and formats them for clean spreadsheet pasting. Use <b>one per line</b> for a column, or <b>tab-separated</b> for a single row.</p>
       </section>
     </main>
 

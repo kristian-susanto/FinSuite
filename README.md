@@ -35,7 +35,7 @@
 2. **Click Counter** — Track high-frequency click interactions with temporary tally state and safe reset controls.
 3. **Text Case Converter** — Transform text between uppercase, lowercase, title case, and sentence case.
 4. **Financial Shorthand Converter** — Convert `K`, `M`, `B`, and `T` financial shorthand values into full integers for spreadsheet workflows.
-5. **Ticker Symbol Extractor** — Extract, deduplicate, and alphabetically sort ticker symbols from raw screener output for clean spreadsheet pasting.
+5. **Ticker Symbol Extractor** — Extract, deduplicate, and alphabetically sort ticker symbols from raw output for clean spreadsheet pasting.
 
 Together, these tools eliminate context switching by combining productivity utilities, capital market analytics, and financial data normalization in one interface.
 
@@ -96,7 +96,7 @@ A lightweight, responsive module that converts shorthand financial values with *
 
 ### 5. 📋 Ticker Symbol Extractor
 
-A precision parsing module that ingests raw screener output and returns a clean, deduplicated, alphabetically sorted list of ticker symbols — ready to paste as a spreadsheet column or a single tab-separated row.
+A precision parsing module that ingests raw output and returns a clean, deduplicated, alphabetically sorted list of ticker symbols — ready to paste as a spreadsheet column or a single tab-separated row.
 
 - **Dual-format ticker detection** — Recognises both **alphabetic symbols** (e.g., `NVDA`, `AMZN`, `DIS`) and **numeric symbols** (e.g., `2475`, `6951`, `679`) so it works with US markets, ASEAN exchanges, and Hong Kong stock codes alike.
 - **Context-aware confirmation** — A line is only accepted as a ticker if the following non-empty line looks like a company name (contains lowercase characters) or is the standalone market marker `D`. This prevents header rows, numeric cells, and unrelated short lines from polluting the output.
@@ -106,7 +106,7 @@ A precision parsing module that ingests raw screener output and returns a clean,
 - **Flexible output shape** — Choose **one symbol per line** (ready for a column) or **tab-separated single row** (ready for a row) with a single checkbox.
 - **Live statistics badge** — Displays how many tickers were extracted and which sort direction is active (e.g., `22 tickers · A → Z`).
 - **One-click copy** — The **Copy result** button pushes the entire output to your clipboard.
-- **Built-in sample loader** — The **Load sample** button populates the input with a real-world Hong Kong electronic technology screener export.
+- **Built-in sample loader** — The **Load sample** button populates the input with a real-world Hong Kong electronic technology export.
 - **No dependencies** — Pure vanilla JavaScript, zero external libraries.
 
 ---
@@ -326,7 +326,7 @@ Then open `http://localhost:5000` in your browser.
 
 ### Step 6: Extracting Ticker Symbols
 
-1. Paste screener output into the **Input** textarea of the **📋 Ticker Symbol Extractor** card.
+1. Paste output into the **Input** textarea of the **📋 Ticker Symbol Extractor** card.
 2. Review the auto-detected tickers in the **Output** textarea.
 3. Adjust options as needed.
 4. Click **Copy result**.
@@ -448,7 +448,7 @@ Then open `http://localhost:5000` in your browser.
 
 1. Start Flask with `python app.py` and open `http://localhost:5000`.
 2. Scroll to the **📋 Ticker Symbol Extractor** card.
-3. Paste your screener output into the **Input** textarea.
+3. Paste your output into the **Input** textarea.
 4. (Optional) Adjust the checkboxes.
 5. Click **Copy result**.
 6. Paste into Excel or Google Sheets.
