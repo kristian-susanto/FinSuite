@@ -278,7 +278,7 @@ HTML_PAGE = r'''<!doctype html>
           <button id="tickerSampleBtn" class="btn-action btn-ghost" type="button">Load sample</button>
           <button id="tickerClearBtn" class="btn-action btn-ghost" type="button">Clear</button>
         </div>
-        <p class="foot">Paste output containing standalone ticker lines. The extractor detects standalone uppercase symbols and numeric ticker codes (2–6 digits), sorts them in strict A → Z / 0 → 9 order, and formats them for clean spreadsheet pasting. Use <b>one per line</b> for a column, or <b>tab-separated</b> for a single row.</p>
+                <p class="foot">Paste output containing standalone ticker lines. The extractor detects standalone uppercase symbols (1–6 characters) and numeric ticker codes (1–6 digits, e.g. <b>2</b>, <b>6</b>, <b>1038</b>), skips quote rows and market markers such as <b>D</b>, sorts them in strict A → Z / 0 → 9 order, and formats them for clean spreadsheet pasting. Use <b>one per line</b> for a column, or <b>tab-separated</b> for a single row.</p>
       </section>
     </main>
 
@@ -1378,8 +1378,16 @@ HTML_PAGE = r'''<!doctype html>
         var descBox = document.getElementById("tickerDesc");
         var tabbedBox = document.getElementById("tickerTabbed");
 
-        // Ticker line = alphabetic (2-6 chars) OR numeric (2-6 digits)
-        var TICKER_RE = /^([A-Z][A-Z0-9]{1,5}|\d{2,6})$/;
+        // Ticker line = alphabetic (1-6 chars) OR numeric (1-6 digits)
+        var TICKER_RE = /^([A-Z][A-Z0-9]{0,5}|\d{1,6})$/;
+
+        // single-character matches such as the "D" market marker are rejected.
+        function isDataRow(s) {
+          if (!s) return false;
+          if (s.indexOf("\t") !== -1) return true;
+          if (/\d/.test(s) && /%/.test(s)) return true;
+          return /\d/.test(s) && /\b(?:HKD|USD|EUR|GBP|JPY|CNY|RMB|TWD|KRW|SGD|AUD|CAD|CHF)\b/.test(s);
+        }
 
         // Common financial abbreviations that could appear on their own line.
         // Includes Depositary Receipt markers (DR, ADR, GDR, IDR, CDR, EDR, DDR)
@@ -1576,8 +1584,9 @@ HTML_PAGE = r'''<!doctype html>
 
             // Confirm: next line looks like a company name (has lowercase),
             // or the next / next-next line is the "D" market marker.
+            // A quote row is never a company name, which filters out stray markers like "D".
             var looksLikeTicker =
-              /[a-z]/.test(next) || next === "D" || after === "D";
+              !isDataRow(next) && (/[a-z]/.test(next) || next === "D" || after === "D");
             if (!looksLikeTicker) continue;
 
             if (dedupeBox.checked) {
