@@ -927,7 +927,7 @@ HTML_PAGE = r'''<!doctype html>
               </div></body></html>`;
           }
 
-          // === CHANGE 1: Force English/US locale for decimal formatting (dot instead of comma) ===
+          // Decimal formatting
           const fmtClose = (v) =>
             v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
 
@@ -980,10 +980,10 @@ HTML_PAGE = r'''<!doctype html>
               .freq-btn:hover{ background:rgba(255,255,255,0.18); }
               .freq-btn.active{ background:#fff; color:var(--primary); }
 
-              /* === CHANGE 2: Added padding-bottom and custom scrollbar to avoid touching text === */
+              /* Added padding-bottom and custom scrollbar to avoid touching text */
               .table-wrap{
                 width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; 
-                padding-bottom: 16px; /* Jarak agar scrollbar tidak mepet ke teks */
+                padding-bottom: 16px; /* Spacing to prevent the scrollbar from being too close to the text */
               }
               /* Custom Scrollbar Styling */
               .table-wrap::-webkit-scrollbar { height: 10px; }
