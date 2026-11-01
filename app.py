@@ -217,7 +217,6 @@ HTML_PAGE = r'''<!doctype html>
             <button onclick="transformText('lower')">lowercase</button>
             <button onclick="transformText('capitalize')">Capitalize Word</button>
             <button onclick="transformText('sentence')">Sentence case</button>
-            <!-- REMOVED: Toggle Case button -->
           </div>
           <div class="text-actions">
             <button class="btn-action btn-success" style="flex: 2" onclick="copyText()">Copy to Clipboard</button>
@@ -756,7 +755,7 @@ HTML_PAGE = r'''<!doctype html>
         return [
           { id: "pkg-history-py", name: "⏳ Historical Data — Python (yfinance quarterly / semiannual closes)", url: "local", local: true },
           { id: "pkg-income-tv", name: "📑 Income Statement — TradingView", url: `${tv}/financials-income-statement/?statements-period=${period}&selected=total_revenue%2Cnet_revenue%2Cnet_income%2Cdiluted_shares_outstanding` },
-          { id: "pkg-balance-tv", name: "⚖️ Balance Sheet — TradingView", url: `${tv}/financials-balance-sheet/?statements-period=${period}&selected=total_equity` },
+          { id: "pkg-balance-tv", name: "⚖️ Balance Sheet — TradingView", url: `${tv}/financials-balance-sheet/?statements-period=${period}&selected=cash_n_equivalents%2Ctotal_equity` },
           { id: "pkg-ratios-tv", name: "📊 Ratios — TradingView", url: `${tv}/financials-statistics-and-ratios/?statistics-period=${period}&selected=price_earnings%2Cprice_book%2Cnet_margin` },
         ];
       }
@@ -769,8 +768,8 @@ HTML_PAGE = r'''<!doctype html>
           { id: "overview", name: "🏢 Overview", url: `${base}/` },
           { id: "history", name: "⏳ Historical Data", url: `${base}/?timeframe=120M` },
           { id: "income", name: "📑 Income Statement", url: `${base}/financials-income-statement/?statements-period=FQ&selected=total_revenue%2Cnet_revenue%2Cnet_income%2Cdiluted_shares_outstanding` },
-          { id: "balance", name: "⚖️ Balance Sheet", url: `${base}/financials-balance-sheet/?statements-period=FQ&selected=total_equity` },
-          { id: "cash", name: "🔄 Cash Flow", url: `${base}/financials-cash-flow/?statements-period=FQ` },
+          { id: "balance", name: "⚖️ Balance Sheet", url: `${base}/financials-balance-sheet/?statements-period=FQ&selected=cash_n_equivalents%2Ctotal_equity` },
+          { id: "cash", name: "🔄 Cash Flow", url: `${base}/financials-cash-flow/?statements-period=FQ&selected=` },
           { id: "stats", name: "📊 Financial Stats", url: `${base}/financials-statistics-and-ratios/?statistics-period=FQ&selected=price_earnings%2Cprice_book%2Cnet_margin` },
           { id: "revenue", name: "💰 Revenue", url: `${base}/financials-revenue/` },
           { id: "dividends", name: "💸 Dividends", url: `${base}/financials-dividends/` },
@@ -928,8 +927,9 @@ HTML_PAGE = r'''<!doctype html>
               </div></body></html>`;
           }
 
+          // === CHANGE 1: Force English/US locale for decimal formatting (dot instead of comma) ===
           const fmtClose = (v) =>
-            v.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 5 });
+            v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
 
           const latestDateCell = latest ? latest.date : "—";
           const latestCloseCell = latest ? fmtClose(latest.close) : "—";
@@ -980,7 +980,17 @@ HTML_PAGE = r'''<!doctype html>
               .freq-btn:hover{ background:rgba(255,255,255,0.18); }
               .freq-btn.active{ background:#fff; color:var(--primary); }
 
-              .table-wrap{width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch}
+              /* === CHANGE 2: Added padding-bottom and custom scrollbar to avoid touching text === */
+              .table-wrap{
+                width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; 
+                padding-bottom: 16px; /* Jarak agar scrollbar tidak mepet ke teks */
+              }
+              /* Custom Scrollbar Styling */
+              .table-wrap::-webkit-scrollbar { height: 10px; }
+              .table-wrap::-webkit-scrollbar-track { background: var(--stripe); border-radius: 6px; margin: 0 15px; }
+              .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 2px solid var(--stripe); }
+              .table-wrap::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
               table{border-collapse:collapse; width:100%; min-width:max-content}
               th,td{
                 padding: 8px 10px; border-bottom:1px solid var(--border); white-space:nowrap;
