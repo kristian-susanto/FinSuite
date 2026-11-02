@@ -1188,7 +1188,7 @@ HTML_PAGE = r'''<!doctype html>
           setTimeout(() => {
             if (item.local) { openHistoryTab(exchangeCode, ticker, freq); }
             // ── pass freq
-            else { window.open(item.url, "_blank"); }
+            else { window.open(item.url, "_blank", "noopener"); }
           }, index * 350);
         });
       }
