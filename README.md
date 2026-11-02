@@ -48,15 +48,17 @@ Together, these tools eliminate context switching by combining productivity util
 Designed for investors, traders, and financial analysts to eliminate repetitive browser research by triggering deep-dive analysis pipelines simultaneously with a single action.
 
 - **Multi-Tab Execution Workflow:** Generates and launches custom analytical URLs instantly, mapping exchange codes and asset symbols dynamically.
-- **Cross-Global Exchange Resolution System:** Out-of-the-box support for international markets including NYSE, HKG, SGX, SSE, TYO, and more.
-- **Granular Data Point Filtering:** Choose precisely which dimensions to investigate (e.g., Latest News, Financial Ratios, Historical Trends, Balance Sheets, Income Statements, Cash Flow Metrics, or Dividend Trackers). This checklist applies to **TradingView** and **StockAnalysis** modes.
+- **Cross-Global Exchange Resolution System:** Built-in international exchange registry with Yahoo Finance suffix mapping and StockAnalysis exchange-code mapping for markets such as NYSE, NASDAQ, HKEX, SGX, SSE, SZSE, TSE, ASX, LSE, XETR, Euronext venues, and many more.
+- **Granular Data Point Filtering:** Choose precisely which dimensions to investigate (Overview, Historical Data, Income Statement, Balance Sheet, Cash Flow, Ratios, Revenue, Dividends). This checklist applies to **TradingView** and **StockAnalysis** modes.
 - **Four Data Source Modes:** Switch the structural parsing logic between **Quarterly Package**, **Semester Package**, **TradingView**, or **StockAnalysis** depending on your data pipeline preferences.
 - **Package Modes (Quarterly & Semester):** One-click bundled workflows that ignore the granular checklist and launch a fixed set of **4 analytical tabs** in a single action — combining TradingView financial statements with a locally rendered historical data view.
   - **Quarterly Package (default):** TradingView financial statement URLs use the `FQ` period parameter, and the local Historical Data popup opens in **Quarterly** mode.
   - **Semester Package:** TradingView financial statement URLs use the `FH` period parameter, and the local Historical Data popup opens in **Semiannual** mode directly. You can still toggle back to Quarterly inside the popup.
 - **Local Historical Data View:** The ⏳ **Historical Data** tab is rendered on the fly by the Flask backend. It queries Yahoo Finance daily closes (10 years), reduces them to period-end closes, and displays them in a **transposed, responsive table** with a **Current** column always shown first (leftmost), followed by period columns. The tab includes an **in-popup Quarterly / Semiannual toggle** so the user can switch reporting frequency without returning to the main page.
 - **In-Popup Frequency Toggle:** The Historical Data popup carries its own **Quarterly** and **Semiannual** toggle in the blue header. Clicking either button re-renders the table instantly using the already-cached daily data — no additional network request is issued.
-- **Context-Aware Keyboard Shortcut:** Pressing `Enter` inside the Exchange Name field, Ticker Symbol field, or any non-textarea/non-button form control immediately triggers the research pipeline.
+- **Copy Price Data:** The Historical Data popup includes a **Copy Price Data** card with a period dropdown, a period-count input, and a copy button. It copies the **Current** close plus the selected period closes as a tab-separated row (values only, no labels).
+- **Context-Aware Keyboard Shortcut:** Pressing `Enter` inside any non-textarea, non-button form control (Exchange Name, Ticker Symbol, radio/checkbox, select, etc.) immediately triggers the research pipeline.
+- **HKEX Symbol Handling:** Leading zeros are stripped before the `/history/<symbol>` URL is generated (e.g., `0700.HK → 700.HK`), then re-padded back to 4 digits before the Yahoo Finance query is issued inside the popup.
 - **Fail-Safe Manual Backup Registry:** Embedded link presentation tier ensures that if a modern browser blocks multi-popups, backup clickable links render seamlessly to bypass security restrictions.
 
 ### 2. 🖱️ Click Counter
@@ -66,7 +68,8 @@ A lightweight, reactive digital tallying and micro-interaction sandbox designed 
 - **Micro-Interaction Visual System:** Live viewport numbers dynamically expand and contract using hardware-accelerated CSS scaling matrices upon click inputs.
 - **Refresh Shortcut Interception:** Intercepts volatile browser events (such as accidental keyboard `F5`, `Ctrl+R`, `Ctrl+Shift+R`, `Ctrl+F5`, and `Shift+F5` refreshes) to help protect the temporary click count from unintended page reloads. The handler uses the capture phase and `stopPropagation` for maximum coverage.
 - **Safe Reset Dialogs:** Employs explicit user-intent confirmations before wiping state tracking records back to zero.
-- **Decrement Control:** Includes a dedicated `−` button to reduce the current count by one when the value is greater than zero.
+- **Decrement Control:** Includes a dedicated `−` button to reduce the current count by one when the value is greater than zero (never below zero).
+- **Control Layout:** A `+` button increments the counter, a `−` button decrements, and a red **Reset** button opens the confirmation dialog.
 
 ### 3. 🔤 Text Case Converter
 
@@ -98,15 +101,16 @@ A lightweight, responsive module that converts shorthand financial values with *
 
 A precision parsing module that ingests raw output and returns a clean, deduplicated, alphabetically sorted list of ticker symbols — ready to paste as a spreadsheet column or a single tab-separated row.
 
-- **Dual-format ticker detection** — Recognises both **alphabetic symbols** (e.g., `NVDA`, `AMZN`, `DIS`) and **numeric symbols** (e.g., `2475`, `6951`, `679`) so it works with US markets, ASEAN exchanges, and Hong Kong stock codes alike.
-- **Context-aware confirmation** — A line is only accepted as a ticker if the following non-empty line looks like a company name (contains lowercase characters) or is the standalone market marker `D`. This prevents header rows, numeric cells, and unrelated short lines from polluting the output.
-- **Header noise filtering** — Common financial header abbreviations (`TTM`, `EPS`, `YOY`, `QOQ`, `ETF`, `IPO`, `CEO`, `CFO`, `ROE`, `ROA`, `ROI`, `NAV`, `ALL`, `NONE`, `NA`) are automatically discarded.
+- **Dual-format ticker detection** — Recognises both **alphabetic symbols** (1–6 characters starting with an uppercase letter, e.g., `NVDA`, `AMZN`, `DIS`) and **numeric symbols** (1–6 digits, e.g., `2`, `6`, `2475`, `6951`, `679`) so it works with US markets, ASEAN exchanges, and Hong Kong stock codes alike.
+- **Context-aware confirmation** — A line is only accepted as a ticker if the following non-empty line looks like a company name (contains lowercase characters), equals the standalone market marker `D`, or the line after that equals `D`. This prevents header rows, numeric cells, and unrelated short lines from polluting the output.
+- **Data-row rejection** — Lines that look like data rows are not used as confirmation. A line is treated as a data row when it contains a tab, a digit together with `%`, or a digit together with a currency code such as `HKD`, `USD`, `EUR`, `GBP`, `JPY`, `CNY`, `RMB`, `TWD`, `KRW`, `SGD`, `AUD`, `CAD`, or `CHF`.
+- **Header noise filtering** — Common financial header abbreviations (`TTM`, `EPS`, `YOY`, `QOQ`, `ETF`, `IPO`, `CEO`, `CFO`, `ROE`, `ROA`, `ROI`, `NAV`, `ALL`, `NONE`, `NA`) and depositary-receipt markers (`DR`, `ADR`, `GDR`, `IDR`, `CDR`, `EDR`, `DDR`) are automatically discarded.
 - **Alphabetical sorting (A → Z)** — The default output order; a single checkbox flips it to **Z → A** for reverse workflows.
 - **Duplicate removal** — On by default; toggle it off to preserve every occurrence in the source.
 - **Flexible output shape** — Choose **one symbol per line** (ready for a column) or **tab-separated single row** (ready for a row) with a single checkbox.
 - **Live statistics badge** — Displays how many tickers were extracted and which sort direction is active (e.g., `22 tickers · A → Z`).
 - **One-click copy** — The **Copy result** button pushes the entire output to your clipboard.
-- **Built-in sample loader** — The **Load sample** button populates the input with a real-world Hong Kong electronic technology export.
+- **Built-in sample loader** — The **Load sample** button populates the input with a real-world Hong Kong electronic technology export. Under the current detection rules, the sample yields **22 numeric results**.
 - **No dependencies** — Pure vanilla JavaScript, zero external libraries.
 
 ---
@@ -119,8 +123,8 @@ The Stock Multi-Tab Researcher supports four data-source modes, selectable throu
 | --------------------- | :-----: | :-------------: | :---------: | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | **Quarterly Package** |    ✓    |       No        |      4      | Fixed bundle (Local Historical Data + TradingView financials) with TradingView financial statement period `FQ`. Local Historical Data popup opens in **Quarterly** mode.  |
 | **Semester Package**  |    —    |       No        |      4      | Fixed bundle (Local Historical Data + TradingView financials) with TradingView financial statement period `FH`. Local Historical Data popup opens in **Semiannual** mode. |
-| **TradingView**       |    —    |       Yes       |    1 – 9    | Granular control; only the checklist-selected data points are opened. Tickers are normalized to uppercase, exchange codes are remapped.                                   |
-| **StockAnalysis**     |    —    |       Yes       |    1 – 9    | Granular control; only the checklist-selected data points are opened. Generated URLs use lowercase exchange/ticker values.                                                |
+| **TradingView**       |    —    |       Yes       |    1 – 8    | Granular control; only the checklist-selected data points are opened. Tickers are normalized to uppercase, exchange codes are remapped.                                   |
+| **StockAnalysis**     |    —    |       Yes       |    1 – 8    | Granular control; only the checklist-selected data points are opened. Generated URLs use lowercase exchange/ticker values.                                                |
 
 ### Package Modes — Fixed 4-Tab Bundle
 
@@ -135,13 +139,45 @@ When **Quarterly Package** or **Semester Package** is selected, the data-point c
 
 Package modes are intentionally unconfigurable on the main page — they are fixed reconnaissance bundles designed for a focused financial review that combines TradingView statements with a locally rendered historical data view. The locally rendered **Historical Data** tab is unique to Package modes and is opened via a client-side fetch to the Flask `/proxy` endpoint.
 
+### TradingView Mode — Granular Targets
+
+When **TradingView** mode is selected, the checklist controls which of the following 8 targets are opened:
+
+| ID          | Label               | URL Pattern                                                           |
+| ----------- | ------------------- | --------------------------------------------------------------------- |
+| `overview`  | 🏢 Overview         | `…/symbols/<EX>-<TICKER>/`                                            |
+| `history`   | ⏳ Historical Data  | `…/symbols/<EX>-<TICKER>/?timeframe=120M`                             |
+| `income`    | 📑 Income Statement | `…/financials-income-statement/?statements-period=FQ&selected=…`      |
+| `balance`   | ⚖️ Balance Sheet    | `…/financials-balance-sheet/?statements-period=FQ&selected=…`         |
+| `cash`      | 🔄 Cash Flow        | `…/financials-cash-flow/?statements-period=FQ&selected=`              |
+| `stats`     | 📊 Financial Stats  | `…/financials-statistics-and-ratios/?statistics-period=FQ&selected=…` |
+| `revenue`   | 💰 Revenue          | `…/financials-revenue/`                                               |
+| `dividends` | 💸 Dividends        | `…/financials-dividends/`                                             |
+
+### StockAnalysis Mode — Granular Targets
+
+When **StockAnalysis** mode is selected, the checklist controls which of the following 8 targets are opened. US-listed exchanges (`OTC`, `NASDAQ`, `NYSE`, `AMEX`) use the `/stocks/<ticker>` URL shape; all other exchanges use the `/quote/<exchange>/<ticker>` shape:
+
+| ID          | Label               | URL Pattern                                          |
+| ----------- | ------------------- | ---------------------------------------------------- |
+| `overview`  | 🏢 Overview         | `<base>/company`                                     |
+| `history`   | ⏳ Historical Data  | `<base>/history/`                                    |
+| `income`    | 📑 Income Statement | `<base>/financials/income-statement/?p=quarterly`    |
+| `balance`   | ⚖️ Balance Sheet    | `<base>/financials/balance-sheet/?p=quarterly`       |
+| `cash`      | 🔄 Cash Flow        | `<base>/financials/cash-flow-statement/?p=quarterly` |
+| `stats`     | 📊 Financial Ratios | `<base>/financials/ratios/?p=quarterly`              |
+| `revenue`   | 💰 Revenue          | `<base>/financials/metrics/`                         |
+| `dividends` | 💸 Dividends        | `<base>/dividend/`                                   |
+
+> **Note:** In StockAnalysis mode, HKEX tickers shorter than 4 digits are zero-padded (e.g., `700 → 0700`) before the URL is generated.
+
 ---
 
 ## Local Historical Data Tab
 
 When the ⏳ **Historical Data** target is executed (only available inside Package modes), the application opens a fresh browser tab and performs the following:
 
-1. Resolves the ticker to a Yahoo Finance symbol using the exchange suffix map (e.g., `HKEX → .HK`).
+1. Resolves the ticker to a Yahoo Finance symbol using the exchange suffix map (e.g., `HKEX → .HK`), stripping and re-adding leading zeros as needed.
 2. Calls the Flask `/proxy?symbol=…&range=10y&interval=1d` endpoint, which forwards the request to Yahoo Finance with a desktop User-Agent header.
 3. Caches the returned daily closes in memory — the data is fetched **once per popup**.
 4. Reduces the daily data to **period-end closing prices** based on the currently selected frequency:
@@ -162,7 +198,7 @@ When the ⏳ **Historical Data** target is executed (only available inside Packa
    - **Actual Date row:** Actual trading date of the period-end close.
    - **Close Price row:** Period-end closing price in the listing currency.
    - The leftmost label column is **sticky** so it stays visible while scrolling horizontally.
-   - The table uses a 💼 favicon and adapts to `prefers-color-scheme` (light/dark).
+   - The table uses a 📊 favicon and adapts to `prefers-color-scheme` (light/dark) on first load, then honours the persisted `localStorage` theme.
 
 ### In-Popup Frequency Toggle
 
@@ -183,7 +219,15 @@ The Historical Data popup carries its own frequency selector in the blue header,
 - The switch is **instant and offline** — no additional request to Flask or Yahoo Finance is made.
 - Users may toggle back and forth freely without returning to the main application page.
 
-If a ticker is invalid, Yahoo Finance returns no data, or a selected frequency produces no rows, the tab renders a friendly error card (including a Quarterly / Semiannual fallback switch) instead of the table.
+### Copy Price Data
+
+The popup includes a dedicated **Copy Price Data** card with the following controls:
+
+- **Latest Period** dropdown — choose which period column to start from.
+- **Periods to Copy (n)** — number of period closes to include after the current close.
+- **Copy Price Data** button — copies the **Current** close plus the selected period closes as a tab-separated row (values only, no labels), ready for horizontal pasting into a spreadsheet.
+
+If a ticker is invalid, Yahoo Finance returns no data, or a selected frequency produces no rows, the tab renders a friendly error card instead of the table.
 
 ---
 
@@ -192,6 +236,7 @@ If a ticker is invalid, Yahoo Finance returns no data, or a selected frequency p
 - **Hybrid Flask + Client-Side Architecture:** The frontend runs entirely inside the browser viewport, while a lightweight **Flask backend** (`app.py`) serves the page and provides a single `/proxy` endpoint used exclusively for fetching Yahoo Finance historical data.
 - **Unified Global Theme Switcher:** Features a centralized master light/dark theme manager. Changes map instantly across all component blocks, typography color tokens, and custom alert cards.
 - **Persistent Preferences:** Automatically mirrors user theme states using `localStorage`.
+- **Default Theme Behaviour:** The main workspace initializes to **light** mode on first visit and immediately persists this to `localStorage`. The Historical Data popup reads `localStorage` first; if nothing is stored, it falls back to the OS-level `prefers-color-scheme`. Since the main page is the standard entry point, both surfaces normally share the same persisted theme.
 - **Fully Responsive Matrix UI:** Built from clean CSS grids and fluid flexbox structures.
 - **Optimized Typography & Footprint:** Crisp font stack hierarchy and inline SVG assets for instant paint times.
 
@@ -298,23 +343,24 @@ Then open `http://localhost:5000` in your browser.
 ### Step 2: Utilizing the Stock Researcher
 
 1. **Define the Destination Market:** Begin typing the exchange name in the **Exchange Name** field. Select from the autocomplete registry.
-2. **Input Asset Tickers:** Enter the ticker code in the **Ticker Symbol** field (e.g., `BBRI`, `AAPL`, `D05`).
+2. **Input Asset Tickers:** Enter the ticker code in the **Ticker Symbol** field (e.g., `BBRI`, `AAPL`, `D05`, `0700`).
 3. **Choose Your Analytics Provider:** Select one of the four modes in the **Data Source Support** radio panel.
-4. **Configure Your Focus Area (Checklist modes only):** Use the checkbox panel or the instant `All` / `None` triggers.
-5. **Execute Research Tabs:** Click **Open All Selected Tabs** — or press `Enter` in the Exchange/Ticker/radio field.
+4. **Configure Your Focus Area (Checklist modes only):** Use the checkbox panel or the instant `All` / `None` triggers to select which data points to open.
+5. **Execute Research Tabs:** Click **Open All Selected Tabs** — or press `Enter` inside the Exchange/Ticker field or any radio/checkbox control.
    - If tabs do not open, allow pop-ups from the site, or use the manual link panel that appears below the controls.
 6. **Switch Frequency Inside the Historical Data Tab (optional):** Use the **Quarterly** / **Semiannual** buttons in the blue header of the popup.
+7. **Copy Historical Prices (optional):** Use the **Copy Price Data** card in the Historical Data popup to copy the current close plus selected period closes as a tab-separated row.
 
 ### Step 3: Operating the Click Counter
 
-1. Click **CLICK HERE** to increment.
-2. Use the `−` button to decrement by one (never below zero).
-3. Use **Reset** and confirm the prompt to clear the counter.
+1. Click the **`+`** button to increment the counter by one.
+2. Click the **`−`** button to decrement by one (never below zero).
+3. Click **Reset** and confirm the prompt to clear the counter back to zero.
 
 ### Step 4: Converting Data Typography
 
 1. Paste or type raw text into the textarea.
-2. Trigger one of the four case transformations.
+2. Trigger one of the four case transformations (`UPPERCASE`, `lowercase`, `Capitalize Word`, `Sentence case`).
 3. Click **Copy to Clipboard** to export.
 
 ### Step 5: Using the Financial Shorthand Converter
@@ -328,7 +374,7 @@ Then open `http://localhost:5000` in your browser.
 
 1. Paste output into the **Input** textarea of the **📋 Ticker Symbol Extractor** card.
 2. Review the auto-detected tickers in the **Output** textarea.
-3. Adjust options as needed.
+3. Adjust options as needed (Remove duplicates, Sort Z → A, Tab-separated).
 4. Click **Copy result**.
 5. Paste into your spreadsheet.
 
@@ -340,8 +386,8 @@ Then open `http://localhost:5000` in your browser.
 | ----------------------------------------------------------------------------------- | ------------------------- | --------------------------------------------------------------- |
 | `Enter`                                                                             | Exchange Name field       | Triggers **Open All Selected Tabs**                             |
 | `Enter`                                                                             | Ticker Symbol field       | Triggers **Open All Selected Tabs**                             |
-| `Enter`                                                                             | Radio/checkbox option     | Triggers **Open All Selected Tabs**                             |
-| `Enter`                                                                             | Focused button            | Activates that specific button                                  |
+| `Enter`                                                                             | Radio / checkbox option   | Triggers **Open All Selected Tabs**                             |
+| `Enter`                                                                             | Focused button            | Activates that specific button (native behaviour)               |
 | `Enter`                                                                             | Inside any textarea       | Inserts a new line (default browser behaviour)                  |
 | `Ctrl+R` / `Cmd+R` / `Ctrl+Shift+R` / `Cmd+Shift+R` / `F5` / `Ctrl+F5` / `Shift+F5` | Anywhere on the main page | Blocked — refresh is intercepted to protect click-counter state |
 
@@ -378,6 +424,7 @@ Then open `http://localhost:5000` in your browser.
 - Lines containing `%` are skipped entirely.
 - Blank lines are ignored.
 - Extra spaces and invisible Unicode characters are cleaned automatically.
+- Unicode minus signs and en/em dashes are normalized to a standard minus sign before parsing.
 
 **Example input:**
 
@@ -423,7 +470,7 @@ Then open `http://localhost:5000` in your browser.
 2. **Percentage detection** – If a line contains `%`, it is skipped.
 3. **Number extraction** – A regex captures sign, numeric part, and optional suffix.
 4. **Suffix mapping** – The suffix maps to a BigInt multiplier.
-5. **Exact multiplication** – The numeric string is split into integer and fractional parts.
+5. **Exact multiplication** – The numeric string is split into integer and fractional parts; BigInt arithmetic is applied.
 6. **Formatting** – Commas inserted every three digits.
 7. **Output assembly** – All converted values are collected, optionally reversed, and joined with tabs.
 
@@ -433,15 +480,16 @@ Then open `http://localhost:5000` in your browser.
 
 ### Ticker Extractor Features
 
-- **Dual-format detection** — Accepts both alphabetic symbols (`NVDA`, `AMZN`, `DIS`) and numeric symbols (`2475`, `6951`, `679`).
-- **Contextual confirmation** — A line is accepted as a ticker only if the next non-empty line looks like a company name or equals `D`.
-- **Header noise filtering** — Common financial abbreviations are ignored.
+- **Dual-format detection** — Accepts both alphabetic symbols (`NVDA`, `AMZN`, `DIS`) and numeric symbols (`2`, `6`, `2475`, `6951`, `679`).
+- **Contextual confirmation** — A line is accepted as a ticker only if the next non-empty line looks like a company name (contains lowercase characters), equals `D`, or the line after that equals `D`.
+- **Data-row rejection** — Confirmation lines that look like data rows (tabs, digit + `%`, digit + currency code) are rejected.
+- **Header noise filtering** — Common financial abbreviations and depositary-receipt markers are ignored.
 - **Alphabetical sorting** — Default A → Z; one checkbox flips to Z → A.
 - **Duplicate removal** — Enabled by default.
 - **Flexible output shape** — One symbol per line or tab-separated single row.
 - **Live statistics** — A badge above the output shows total count and sort direction.
 - **One-click copy** — Pushes the entire output to your clipboard.
-- **Sample loader** — Drops in a real export.
+- **Sample loader** — Drops in a real export; under the current rules it yields 22 numeric results.
 - **Zero dependencies** — Vanilla JavaScript only.
 
 ### Ticker Extractor Quick Start
@@ -465,9 +513,15 @@ Then open `http://localhost:5000` in your browser.
 
 ### Detection Rules
 
-1. **Pattern match** — Trimmed line must be an alphabetic ticker (`^[A-Z][A-Z0-9]{1,5}$`) or numeric ticker (`^\d{3,6}$`).
-2. **Noise filter** — The line must not be one of the reserved header abbreviations.
-3. **Context confirmation** — Next non-empty line must contain lowercase OR be exactly `D` OR be followed by `D`.
+1. **Pattern match** — Trimmed line must match `^([A-Z][A-Z0-9]{0,5}|\d{1,6})$`:
+   - alphabetic ticker: 1–6 characters, starting with `A–Z`, followed by 0–5 uppercase letters or digits;
+   - numeric ticker: 1–6 digits.
+2. **Noise filter** — The line must not be one of the reserved header abbreviations:
+   - `TTM`, `EPS`, `YOY`, `QOQ`, `ETF`, `IPO`, `CEO`, `CFO`, `ROE`, `ROA`, `ROI`, `NAV`, `ALL`, `NONE`, `NA`;
+   - depositary-receipt markers: `DR`, `ADR`, `GDR`, `IDR`, `CDR`, `EDR`, `DDR`.
+3. **Context confirmation** — The next non-empty line must:
+   - not look like a data row (no tabs, no digit+`%` pair, no digit+currency code), **and**
+   - contain lowercase characters, or equal `D`, or be immediately followed by `D`.
 4. **Deduplication (optional)** — If enabled, only the first occurrence is kept.
 
 ### Ticker Extractor Options
@@ -482,12 +536,12 @@ Then open `http://localhost:5000` in your browser.
 
 1. **Line splitting** — Input is split on `\r\n` or `\n`.
 2. **Trim & match** — Each line is trimmed and tested against the ticker regex.
-3. **Noise rejection** — Reserved header words are skipped.
-4. **Context lookahead** — Next two non-empty lines are inspected.
+3. **Noise rejection** — Reserved header words and DR markers are skipped.
+4. **Context lookahead** — The next two non-empty lines are inspected and validated via the `isDataRow` helper.
 5. **Dedup collection** — Surviving tickers are pushed into the result array.
-6. **Sort** — Lexicographic sort (A → Z by default).
+6. **Sort** — Lexicographic sort (A → Z by default); reverse when Z → A is checked.
 7. **Join** — Joined with `\n` or `\t` and written to the output.
-8. **Statistics** — The stats badge is updated.
+8. **Statistics** — The stats badge is updated (e.g., `22 tickers · A → Z`).
 
 ---
 
@@ -498,13 +552,18 @@ You can easily modify the tools by editing the source in `app.py`:
 - **Sample data (Financial Shorthand Converter)** — Change the `SAMPLE` array inside its IIFE.
 - **Sample data (Ticker Symbol Extractor)** — Change the `SAMPLE` array inside its IIFE.
 - **Ticker detection rules** — Adjust the `TICKER_RE` regex and the `NOISE` object.
-- **Ticker context confirmation** — Edit the `looksLikeTicker` condition.
+- **Ticker context confirmation** — Edit the `looksLikeTicker` condition and the `isDataRow` helper.
 - **Multipliers (Financial Shorthand Converter)** — Adjust the `MULT` object.
 - **Placeholder text** — Update `placeholder` attributes on any textarea.
 - **Styling** — All CSS is embedded in the `<style>` block inside `HTML_PAGE`.
 - **Package tab bundle** — Edit `buildPackageTargets()` to add or remove bundled tabs. The current fixed bundle is 4 tabs: Historical Data (local), Income Statement, Balance Sheet, and Ratios (all TradingView).
-- **Historical table layout** — The transposed Historical Data table is generated inside `openHistoryTab()`.
-- **Default historical frequency** — Modify `let freq = (initialFreq === "semiannual") ? "semiannual" : "quarterly";`.
+- **TradingView tab bundle** — Edit `buildTradingViewTargets()` to change the granular 8-target set.
+- **StockAnalysis tab bundle** — Edit `buildStockAnalysisTargets()` to change the granular 8-target set.
+- **Exchange registry** — Add or remove entries from the `exchanges` array (name + code).
+- **Yahoo suffix map** — Extend `YAHOO_SUFFIX_MAP` when adding new exchanges that should resolve on Yahoo Finance.
+- **StockAnalysis exchange map** — Extend `SA_EXCHANGE_MAP` when adding new exchanges that should resolve on StockAnalysis.
+- **Historical table layout** — The transposed Historical Data table is generated inside the `render()` function of the `HISTORY_PAGE` template.
+- **Default historical frequency** — Modify `let freq = urlParams.get('freq') === 'semiannual' ? 'semiannual' : 'quarterly';`.
 - **Quarterly / Semiannual grouping logic** — Handled inside `processPeriodData(timestamps, closes, freq)`.
 - **Package tab delay** — Adjust the `350` millisecond timeout inside `processSearch()`.
 - **Proxy timeout** — The `/proxy` route uses a 15-second timeout.
@@ -549,19 +608,20 @@ For older browsers, the fallback copy method may work, but BigInt support is ess
 | Ticker Extractor includes false positives      | Header word not in the noise list            | Add the word to the `NOISE` object inside the Ticker Symbol Extractor IIFE.                                    |
 | Ticker Extractor misses some symbols           | Symbol format not matched by the regex       | Extend `TICKER_RE` to include the missing format.                                                              |
 | Ticker Extractor output order looks odd        | Numeric sorting is lexicographic             | By design, tickers are sorted as strings.                                                                      |
+| HKEX ticker does not resolve                   | Symbol was not zero-padded to 4 digits       | The popup re-pads the HKEX symbol before the Yahoo Finance query. Verify the ticker is a valid 1–4 digit code. |
 
 ---
 
 ## Unified Architecture & Technologies Used
 
-- **Flask (Python) Backend:** `app.py` serves the single-file frontend via `render_template_string` and exposes a `/proxy` endpoint that forwards requests to Yahoo Finance for historical price data.
+- **Flask (Python) Backend:** `app.py` serves the single-file frontend via `render_template_string` and exposes a `/proxy` endpoint that forwards requests to Yahoo Finance for historical price data. The `/history/<symbol>` route renders the locally hosted Historical Data popup.
 - **HTML5 Elements:** Structured content layout separating input contexts from interactive control modules.
-- **CSS3 Variables & Responsive Design:** Centralized color variables handle real-time theme swapping; mobile-first layout engine.
+- **CSS3 Variables & Responsive Design:** Centralized color variables handle real-time theme swapping; mobile-first layout engine. Sticky positioning is used in the Historical Data table's leftmost label column.
 - **Vanilla JavaScript (ES6+):** Manages local caching layers, typography transformations, tracking variables, URL mapping, the local Historical Data tab, and the Ticker Symbol Extractor. The main page also runs a capture-phase `keydown` listener to intercept refresh shortcuts.
 - **SweetAlert2 Library Integration:** Modern, non-blocking toast popups and validation dialogs that match the selected system theme.
 - **BigInt Arithmetic:** Exact financial suffix conversion without floating-point precision loss.
-- **Regex-Based Parsing:** The Ticker Symbol Extractor uses `^([A-Z][A-Z0-9]{1,5}|\d{3,6})$` to accept both alphabetic and numeric ticker formats in a single pass.
-- **Clipboard API Integration:** One-click copy operations across the suite, with fallback support.
+- **Regex-Based Parsing:** The Ticker Symbol Extractor uses `^([A-Z][A-Z0-9]{0,5}|\d{1,6})$` to accept both alphabetic and numeric ticker formats in a single pass.
+- **Clipboard API Integration:** One-click copy operations across the suite, with legacy `execCommand('copy')` fallback support.
 - **`requests` (Python):** Used by the Flask `/proxy` route to make outbound HTTP calls to Yahoo Finance with a desktop User-Agent header.
 
 ---

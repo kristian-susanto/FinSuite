@@ -728,10 +728,6 @@ HTML_PAGE = r'''<!doctype html>
         const ex = saExchangeCode(exchangeCode).toLowerCase();
         let tk = String(ticker).toLowerCase();
 
-        // ── Hong Kong tickers: pad to 4 digits ──
-        //    1-digit  → prepend "000"
-        //    2-digit  → prepend "00"
-        //    3-digit  → prepend "0"
         if (tv === "HKEX" && /^\d{1,3}$/.test(tk)) {
           tk = tk.padStart(4, "0");
         }
@@ -750,7 +746,6 @@ HTML_PAGE = r'''<!doctype html>
 
       function buildPackageTargets(exchangeCode, ticker, isSemester) {
         const tv = `https://www.tradingview.com/symbols/${tvSymbol(exchangeCode, ticker)}`;
-        // FH for Semester, FQ for Quarterly
         const period = isSemester ? "FH" : "FQ";
         return [
           { id: "pkg-history-py", name: "⏳ Historical Data — Python (yfinance quarterly / semiannual closes)", url: "local", local: true },
@@ -792,7 +787,6 @@ HTML_PAGE = r'''<!doctype html>
         ];
       }
 
-      // --- Event listeners for automatic formatting ---
       exchangeInput.addEventListener("input", (e) => {
         const start = e.target.selectionStart;
         const end = e.target.selectionEnd;
@@ -812,7 +806,6 @@ HTML_PAGE = r'''<!doctype html>
         const isPackage = source.includes("package");
         checkboxGrid.classList.toggle("is-disabled", isPackage);
         checkboxGrid.querySelectorAll('input[type="checkbox"]').forEach((cb) => (cb.disabled = isPackage));
-        // Force ticker to uppercase for all source types
         tickerInput.value = tickerInput.value.toUpperCase();
       }
       radioButtons.forEach((r) => r.addEventListener("change", updateSourceUI));
@@ -822,330 +815,22 @@ HTML_PAGE = r'''<!doctype html>
         checkboxGrid.querySelectorAll('input[type="checkbox"]').forEach((cb) => (cb.checked = selectAll));
       }
 
-      function getPeriodLabel(dateStr, freq) {
-        const dt = new Date(dateStr + "T00:00:00");
-        const y = dt.getFullYear();
-        const m = dt.getMonth() + 1;
-
-        if (m === 3) return `1Q${y}`;
-        if (m === 6) return `1H${y}`;
-        if (m === 9) return `9M${y}`;
-        if (m === 12) return `FY${y}`;
-        return ""; // fallback (will not be called because it has already been filtered)
-      }
-
-      function processPeriodData(timestamps, closes, freq) {
-        // 1) Find latest close (most recent valid trading day)
-        let latest = null;
-        for (let i = timestamps.length - 1; i >= 0; i--) {
-          if (closes[i] === null || closes[i] === undefined) continue;
-          const d = new Date(timestamps[i] * 1000);
-          latest = {
-            date: d.toISOString().split("T")[0],
-            close: closes[i],
-          };
-          break;
-        }
-
-        // 2) Group by period (quarterly or semiannual), keep last close per period
-        const grouped = {};
-        const order = [];
-        for (let i = 0; i < timestamps.length; i++) {
-          if (closes[i] === null || closes[i] === undefined) continue;
-          const d = new Date(timestamps[i] * 1000);
-          const y = d.getFullYear();
-          const m = d.getMonth(); // 0-11
-
-          let key;
-          if (freq === "semiannual") {
-            // Keep only June (index 5) and December (index 11)
-            if (m !== 5 && m !== 11) continue;
-            key = `${y}-H${m === 5 ? 1 : 2}`;
-          } else {
-            // Quarterly — keep only standard quarter-end months: Mar (2), Jun (5), Sep (8), Dec (11)
-            // This filters out October so neither 10M2026 nor 4Q2026 appears.
-            if (m !== 2 && m !== 5 && m !== 8 && m !== 11) continue;
-            key = `${y}-Q${Math.floor(m / 3) + 1}`;
-          }
-
-          if (!grouped[key]) order.push(key);
-          grouped[key] = {
-            date: d.toISOString().split("T")[0],
-            close: closes[i],
-            period: getPeriodLabel(d.toISOString().split("T")[0], freq),
-          };
-        }
-
-        const periodData = order.map((k) => grouped[k]);
-        // 3) Sort newest → oldest
-        periodData.sort((a, b) => new Date(b.date) - new Date(a.date));
-
-        return { latest, periodData };
-      }
-
-      async function openHistoryTab(exchangeCode, ticker, initialFreq) {
-        let freq = (initialFreq === "semiannual") ? "semiannual" : "quarterly";
-        let cachedTimestamps = null;
-        let cachedCloses = null;
-        let cachedSymbol = null;
-
-        const newTab = window.open("", "_blank");
-        if (!newTab) {
-          Swal.fire(getToastConfig("error", "Popup blocked! Please allow popups for this site."));
-          return;
-        }
-
+      // ── OPEN HISTORY TAB (Removes leading zeros for HKEX) ──
+      function openHistoryTab(exchangeCode, ticker, initialFreq) {
         const suffix = YAHOO_SUFFIX_MAP[exchangeCode.toUpperCase()] || "";
         let baseTicker = ticker.toUpperCase();
-
-        // ── Hong Kong tickers: pad to 4 digits ──
-        //    1-digit  → prepend "000"
-        //    2-digit  → prepend "00"
-        //    3-digit  → prepend "0"
-        if (exchangeCode.toUpperCase() === "HKEX" && /^\d{1,3}$/.test(baseTicker)) {
-          baseTicker = baseTicker.padStart(4, "0");
+        
+        if (exchangeCode.toUpperCase() === "HKEX") {
+          baseTicker = baseTicker.replace(/^0+/, '') || '0';
         }
-
+        
         const symbol = baseTicker + suffix;
-
-        newTab.document.write(`<html><head><title>Loading...</title></head><body style="font-family:system-ui;padding:40px;text-align:center;background:#f1f5f9"><h2>Fetching historical data for ${symbol}...</h2><p>Please wait.</p></body></html>`);
-
-        const proxyUrl = `/proxy?symbol=${encodeURIComponent(symbol)}&range=10y&interval=1d`;
-
-        // ── Build the full popup page HTML for current `freq` ─────────
-        function buildPageHtml() {
-          const freqTitle = freq === "semiannual" ? "Semiannual" : "Quarter-End";
-          const { latest, periodData } = processPeriodData(cachedTimestamps, cachedCloses, freq);
-          if (!periodData || periodData.length === 0) {
-            return `<!DOCTYPE html><html><head><meta charset="UTF-8"><title>No Data</title></head>
-              <body style="font-family:system-ui;padding:40px;text-align:center;background:#f1f5f9;color:#1e293b">
-              <h2 style="color:#ef4444">No ${freqTitle.toLowerCase()} data available for this ticker.</h2>
-              <p>Try switching to the other frequency.</p>
-              <div style="margin-top:20px">
-                <button data-freq="quarterly" style="padding:10px 18px;margin:4px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer">Quarterly</button>
-                <button data-freq="semiannual" style="padding:10px 18px;margin:4px;border:none;border-radius:8px;background:#2563eb;color:#fff;font-weight:700;cursor:pointer">Semiannual</button>
-              </div></body></html>`;
-          }
-
-          // Decimal formatting
-          const fmtClose = (v) =>
-            v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
-
-          const latestDateCell = latest ? latest.date : "—";
-          const latestCloseCell = latest ? fmtClose(latest.close) : "—";
-          const latestHeader = latest ? latest.date : "—";
-
-          return `<!DOCTYPE html>
-            <html lang="en">
-            <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>${symbol} — Historical Data</title>
-            <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>" />
-            <style>
-              :root{
-                --bg:#f1f5f9; --card:#ffffff; --text:#1e293b; --muted:#64748b;
-                --border:#e2e8f0; --primary:#2563eb; --stripe:#f8fafc; --hover:#eff6ff;
-              }
-              @media (prefers-color-scheme: dark){
-                :root{
-                  --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8;
-                  --border:#334155; --primary:#3b82f6; --stripe:#243449; --hover:#2d3f5c;
-                }
-              }
-              *{box-sizing:border-box}
-              body{
-                font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-                margin:0; padding:22px 14px 44px; background:var(--bg); color:var(--text);
-                -webkit-text-size-adjust:100%;
-              }
-              .container{
-                max-width: 98%; margin: 0 auto; background:var(--card); border-radius:14px;
-                box-shadow:0 10px 25px -5px rgba(0,0,0,.15); overflow:hidden;
-              }
-              .header{background:var(--primary); color:#fff; padding:22px 18px; text-align:center}
-              .header h1{margin:0; font-size:clamp(1.05rem,3.4vw,1.5rem); font-weight:800; word-break:break-word}
-              .header p{margin:6px 0 0; font-size:clamp(.74rem,2.4vw,.9rem); opacity:.88}
-
-              /* ── Frequency toggle inside popup ── */
-              .freq-switch{
-                display:inline-flex; gap:4px; margin-top:14px;
-                background:rgba(255,255,255,0.16); padding:4px; border-radius:10px;
-              }
-              .freq-btn{
-                padding:8px 16px; border:none; border-radius:8px; background:transparent;
-                color:#fff; font-weight:700; font-size:0.82rem; cursor:pointer;
-                transition: all .2s ease; letter-spacing:.2px;
-              }
-              .freq-btn:hover{ background:rgba(255,255,255,0.18); }
-              .freq-btn.active{ background:#fff; color:var(--primary); }
-
-              /* Added padding-bottom and custom scrollbar to avoid touching text */
-              .table-wrap{
-                width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; 
-                padding-bottom: 16px; /* Spacing to prevent the scrollbar from being too close to the text */
-              }
-              /* Custom Scrollbar Styling */
-              .table-wrap::-webkit-scrollbar { height: 10px; }
-              .table-wrap::-webkit-scrollbar-track { background: var(--stripe); border-radius: 6px; margin: 0 15px; }
-              .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 2px solid var(--stripe); }
-              .table-wrap::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
-              table{border-collapse:collapse; width:100%; min-width:max-content}
-              th,td{
-                padding: 8px 10px; border-bottom:1px solid var(--border); white-space:nowrap;
-                font-variant-numeric:tabular-nums;
-              }
-              thead th{
-                background:var(--stripe); color:var(--muted);
-                font-size: 0.75rem; font-weight:700; letter-spacing:.4px;
-                text-transform:uppercase; text-align:center;
-                position:sticky; top:0; z-index:3;
-              }
-              thead th:first-child{
-                left:0; z-index:4; text-align:left; padding-left: 12px;
-                font-size: 0.75rem; font-weight:700;
-                text-transform:uppercase; color:var(--muted); letter-spacing:.4px;
-              }
-              thead th.period-value{
-                text-align:center; color:var(--text);
-                font-size: 0.8rem; font-weight:600;
-                letter-spacing:0; text-transform:none;
-                font-variant-numeric: normal;
-              }
-              thead th.latest-head{
-                background: var(--stripe); color: var(--muted);
-                border-bottom: 1px solid var(--border);
-                text-transform: uppercase; font-size: 0.75rem;
-                font-weight: 700; letter-spacing:.4px;
-              }
-              tbody td.latest-cell{
-                background: transparent;
-                font-weight: 600;
-                color: var(--text);
-              }
-              tbody th{
-                position:sticky; left:0; z-index:2; background:var(--stripe); text-align:left;
-                font-size: 0.75rem; font-weight:700; color:var(--muted);
-                text-transform:uppercase; letter-spacing:.4px;
-                border-right:1px solid var(--border); padding-left: 12px;
-              }
-              tbody td{
-                text-align:center; font-size: 0.85rem; font-weight:600; color:var(--text);
-              }
-              tbody tr:hover td{background:var(--hover)}
-              tbody tr:hover td.latest-cell{background: var(--hover);}
-              tbody tr:last-child th, tbody tr:last-child td{border-bottom:none}
-              .foot{padding:14px 18px; font-size:.75rem; color:var(--muted); text-align:center; line-height:1.6}
-
-              @media (max-width:600px){
-                body{padding:10px 5px 20px}
-                .header{padding:15px 10px}
-                th,td{padding:6px 8px}
-                thead th, thead th:first-child, tbody th{ font-size:0.65rem; }
-                thead th.period-value, tbody td{ font-size:0.75rem; }
-                .foot{font-size:.65rem; padding:10px}
-                .freq-btn{ padding:6px 12px; font-size:0.72rem; }
-              }
-            </style>
-            </head>
-            <body>
-              <div class="container">
-                <div class="header">
-                  <h1>${symbol} — Historical Data</h1>
-                  <p>${freqTitle} Closing Prices &middot; Last 10 Years &middot; Newest First &middot; Includes Current Close</p>
-                  <div class="freq-switch">
-                    <button data-freq="quarterly" class="freq-btn ${freq === "quarterly" ? "active" : ""}">Quarterly</button>
-                    <button data-freq="semiannual" class="freq-btn ${freq === "semiannual" ? "active" : ""}">Semiannual</button>
-                  </div>
-                </div>
-                <div class="table-wrap">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th scope="col">Period</th>
-                        <th scope="col" class="period-value">Current</th>
-                        ${periodData.map((d) => `<th scope="col" class="period-value">${d.period}</th>`).join("")}
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr>
-                        <th scope="row">Actual Date</th>
-                        <td class="latest-cell">${latestDateCell}</td>
-                        ${periodData.map((d) => `<td>${d.date}</td>`).join("")}
-                      </tr>
-                      <tr>
-                        <th scope="row">Close Price</th>
-                        <td class="latest-cell">${latestCloseCell}</td>
-                        ${periodData.map((d) => `<td>${fmtClose(d.close)}</td>`).join("")}
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-                <p class="foot">Swipe horizontally to view every period. All figures are period-end closing prices in the listing currency. The <b>Current</b> column shows the most recent trading day close (${latestHeader}).</p>
-              </div>
-            </body>
-            </html>`;
-        }
-
-        // Paint the popup and re-attach toggle handlers
-        function paint() {
-          newTab.document.open();
-          newTab.document.write(buildPageHtml());
-          newTab.document.close();
-          // Re-attach click handlers to the toggle buttons
-          newTab.document.querySelectorAll("[data-freq]").forEach((btn) => {
-            btn.addEventListener("click", (e) => {
-              e.preventDefault();
-              const f = btn.getAttribute("data-freq");
-              if (f === freq) return;
-              freq = f;
-              paint();
-            });
-          });
-        }
-
-        try {
-          const response = await fetch(proxyUrl);
-          if (!response.ok) {
-            const errText = await response.text();
-            throw new Error(`Server returned ${response.status}: ${errText.slice(0, 200)}`);
-          }
-          const data = await response.json();
-          if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
-            throw new Error("No data found for this ticker symbol.");
-          }
-          const result = data.chart.result[0];
-          cachedTimestamps = result.timestamp;
-          cachedCloses = result.indicators.quote[0].close;
-          if (!cachedTimestamps || !cachedCloses) throw new Error("Incomplete data received.");
-          cachedSymbol = symbol;
-
-          paint();
-        } catch (error) {
-          console.error("Error fetching history:", error);
-          newTab.document.open();
-          newTab.document.write(`<!DOCTYPE html>
-            <html lang="en">
-            <head>
-            <meta charset="UTF-8" />
-            <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>Error — Historical Data</title>
-            <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>" />
-            </head>
-            <body style="font-family:system-ui;padding:40px 20px;text-align:center;background:#f1f5f9;color:#1e293b;margin:0">
-              <h2 style="color:#ef4444;margin:0 0 10px">Error Fetching Data</h2>
-              <p style="margin:0 0 8px">${error.message}</p>
-              <p style="font-size:.9rem;color:#64748b;margin:0">Please check the ticker symbol and try again.</p>
-            </body>
-            </html>`);
-          newTab.document.close();
-        }
+        const freq = (initialFreq === "semiannual") ? "semiannual" : "quarterly";
+        window.open(`/history/${symbol}?freq=${freq}`, "_blank");
       }
 
       function processSearch() {
         const rawExchange = exchangeInput.value.trim();
-        // Force ticker to uppercase at the start
         const ticker = tickerInput.value.trim().toUpperCase();
         const source = getSelectedSource();
         const freq = (source === "semester_package") ? "semiannual" : "quarterly";
@@ -1187,7 +872,6 @@ HTML_PAGE = r'''<!doctype html>
           list.appendChild(a);
           setTimeout(() => {
             if (item.local) { openHistoryTab(exchangeCode, ticker, freq); }
-            // ── pass freq
             else { window.open(item.url, "_blank", "noopener"); }
           }, index * 350);
         });
@@ -1222,7 +906,7 @@ HTML_PAGE = r'''<!doctype html>
         if (count <= 0) {
           counterDisplay.style.transform = "scale(0.9)";
           setTimeout(() => { counterDisplay.style.transform = "scale(1)"; }, 100);
-          return; // already 0, cannot be reduced further
+          return;
         }
         count--;
         counterDisplay.textContent = count;
@@ -1231,33 +915,20 @@ HTML_PAGE = r'''<!doctype html>
       });
 
       window.addEventListener("keydown", (e) => {
-        // Normalise key so "R" and "r" are treated identically
         const key = (e.key || "").toLowerCase();
         const hasModifier = e.ctrlKey || e.metaKey;
-
-        // ── Block every known page-refresh shortcut ─────────────────────
-        //   Ctrl+R / Cmd+R           → normal reload
-        //   Ctrl+Shift+R / Cmd+Shift+R → hard reload (bypass cache)
-        //   F5                       → normal reload
-        //   Ctrl+F5 / Shift+F5       → hard reload (Windows/Linux)
         const isRefreshCombo =
-          (hasModifier && key === "r") ||         // Ctrl+R, Ctrl+Shift+R, Cmd+R, Cmd+Shift+R
-          e.key === "F5" ||                       // F5, Ctrl+F5, Shift+F5
-          key === "f5";                           // fallback for odd layouts
+          (hasModifier && key === "r") ||
+          e.key === "F5" ||
+          key === "f5";
 
         if (isRefreshCombo) {
           e.preventDefault();
           e.stopPropagation();
-          Swal.fire(
-            getToastConfig(
-              "info",
-              "Page refresh shortcuts are disabled to keep your counter and workspace state stable."
-            )
-          );
+          Swal.fire(getToastConfig("info", "Page refresh shortcuts are disabled to keep your counter and workspace state stable."));
           return false;
         }
 
-        // Enter triggers the stock search (unchanged)
         if (e.key === "Enter") {
           const tag = (e.target.tagName || "").toUpperCase();
           if (tag === "TEXTAREA") return;
@@ -1275,7 +946,6 @@ HTML_PAGE = r'''<!doctype html>
           case "lower": textInput.value = str.toLowerCase(); break;
           case "capitalize": textInput.value = str.toLowerCase().split(/\s+/).map((w) => w.charAt(0).toUpperCase() + w.slice(1)).join(" "); break;
           case "sentence": let low = str.toLowerCase().trim(); textInput.value = low.charAt(0).toUpperCase() + low.slice(1); break;
-          // REMOVED: Toggle case logic
         }
       }
       function copyText() {
@@ -1373,9 +1043,6 @@ HTML_PAGE = r'''<!doctype html>
         render();
       })();
 
-      // ─────────────────────────────────────────────────────────────
-      //  TICKER SYMBOL EXTRACTOR
-      // ─────────────────────────────────────────────────────────────
       (function () {
         "use strict";
         var inputEl = document.getElementById("tickerInput");
@@ -1388,10 +1055,8 @@ HTML_PAGE = r'''<!doctype html>
         var descBox = document.getElementById("tickerDesc");
         var tabbedBox = document.getElementById("tickerTabbed");
 
-        // Ticker line = alphabetic (1-6 chars) OR numeric (1-6 digits)
         var TICKER_RE = /^([A-Z][A-Z0-9]{0,5}|\d{1,6})$/;
 
-        // single-character matches such as the "D" market marker are rejected.
         function isDataRow(s) {
           if (!s) return false;
           if (s.indexOf("\t") !== -1) return true;
@@ -1399,9 +1064,6 @@ HTML_PAGE = r'''<!doctype html>
           return /\d/.test(s) && /\b(?:HKD|USD|EUR|GBP|JPY|CNY|RMB|TWD|KRW|SGD|AUD|CAD|CHF)\b/.test(s);
         }
 
-        // Common financial abbreviations that could appear on their own line.
-        // Includes Depositary Receipt markers (DR, ADR, GDR, IDR, CDR, EDR, DDR)
-        // which are NOT stock tickers and must be ignored.
         var NOISE = {
           TTM: 1, EPS: 1, YOY: 1, QOQ: 1, ETF: 1, IPO: 1, CEO: 1, CFO: 1,
           ROE: 1, ROA: 1, ROI: 1, NAV: 1, ALL: 1, NONE: 1, NA: 1,
@@ -1409,168 +1071,30 @@ HTML_PAGE = r'''<!doctype html>
         };
 
         var SAMPLE = [
-          "Symbol",
-          "Mkt cap",
-          "Price",
-          "Chg %",
-          "Vol",
-          "Rel vol",
-          "P/E",
-          "EPS dil",
-          "TTM",
-          "EPS dil growth",
-          "TTM YoY",
-          "Div yield %",
-          "TTM",
-          "Sector",
-          "Analyst rating",
-          "Symbol",
-          "Mkt cap",
-          "Price",
-          "Chg %",
-          "Vol",
-          "Rel vol",
-          "P/E",
-          "EPS dil",
-          "TTM",
-          "EPS dil growth",
-          "TTM YoY",
-          "Div yield %",
-          "TTM",
-          "Sector",
-          "Analyst rating",
-          "2",
-          "2475",
-          "Luxshare Precision Industry Co., Ltd. Class H",
-          "D",
-          "446.21 B HKD\t52.95 HKD\t-1.12%\t436.69 K\t0.19\t—\t—\t—\t0.00%\tElectronic technology",
-          "Strong buy",
-          "6",
-          "6951",
-          "Chaozhou Three-Circle (Group) Co., Ltd. Class H",
-          "D",
-          "272.95 B HKD\t124.1 HKD\t-2.90%\t173.86 K\t0.11\t—\t—\t—\t0.00%\tElectronic technology",
-          "Strong buy",
-          "",
-          "2476",
-          "Victory Giant Technology (HuiZhou) Co., Ltd. Class H",
-          "D",
-          "194.06 B HKD\t195.1 HKD\t-1.22%\t546.33 K\t0.16\t32.72\t5.96 HKD\t—\t0.00%\tElectronic technology",
-          "Strong buy",
-          "3",
-          "3228",
-          "Shenzhen Kinwong Electronic Co., Ltd. Class H",
-          "D",
-          "121.15 B HKD\t74.40 HKD\t-3.19%\t522.7 K\t—\t54.25\t1.37 HKD\t-0.06%\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "1989",
-          "Delton Technology (Guangzhou) Inc. Class H",
-          "D",
-          "69.2 B HKD\t118.1 HKD\t-1.25%\t214.2 K\t0.06\t33.36\t3.54 HKD\t—\t0.62%\tElectronic technology",
-          "Strong buy",
-          "",
-          "2382",
-          "Sunny Optical Technology (Group) Co., Ltd.",
-          "D",
-          "69.2 B HKD\t62.05 HKD\t-2.05%\t4.96 M\t0.81\t12.64\t4.91 HKD\t+51.68%\t1.90%\tElectronic technology",
-          "Buy",
-          "",
-          "6088",
-          "FIT Hon Teng Limited",
-          "D",
-          "35.09 B HKD\t4.845 HKD\t-2.02%\t7.95 M\t0.35\t27.10\t0.18 HKD\t+6.56%\t0.00%\tElectronic technology",
-          "Strong buy",
-          "",
-          "1879",
-          "Shanghai Xizhi Technology Co., Ltd Class H",
-          "D",
-          "26.5 B HKD\t280.0 HKD\t-0.64%\t33.41 K\t0.07\t—\t—\t—\t0.00%\tElectronic technology",
-          "Strong buy",
-          "",
-          "1478",
-          "Q Technology (Group) Co. Ltd.",
-          "D",
-          "6.05 B HKD\t5.060 HKD\t0.00%\t2.68 M\t0.78\t3.75\t1.35 HKD\t+214.98%\t10.87%\tElectronic technology",
-          "Buy",
-          "",
-          "1300",
-          "Trigiant Group Ltd.",
-          "D",
-          "5.06 B HKD\t2.625 HKD\t-8.22%\t9.04 M\t0.68\t14.26\t0.18 HKD\t—\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "679",
-          "Asia Tele-Net and Technology Corp Ltd",
-          "D",
-          "1.73 B HKD\t4.200 HKD\t-8.10%\t350 K\t0.54\t—\t-0.12 HKD\t-66.36%\t0.88%\tElectronic technology",
-          "No rating",
-          "",
-          "1037",
-          "Maxnerva Technology Services Limited",
-          "D",
-          "444.89 M HKD\t0.620 HKD\t-1.59%\t1.36 M\t3.44\t—\t-0.00 HKD\t-313.64%\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "567",
-          "Jsmart Technologies Group Limited",
-          "D",
-          "435.59 M HKD\t0.270 HKD\t0.00%\t180 K\t0.41\t—\t-0.01 HKD\t-0.76%\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "1679",
-          "Risecomm Group Holdings Limited",
-          "D",
-          "374.18 M HKD\t1.320 HKD\t+0.76%\t92 K\t1.59\t—\t-0.13 HKD\t+78.80%\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "8375",
-          "Data Union Capital International Holdings Group Limited",
-          "D",
-          "317.95 M HKD\t0.800 HKD\t-13.04%\t50 K\t0.40\t—\t-0.05 HKD\t-8.21%\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "1480",
-          "Yan Tat Group Holdings Limited",
-          "D",
-          "240 M HKD\t1.000 HKD\t0.00%\t22 K\t0.24\t—\t-0.13 HKD\t-172.50%\t3.00%\tElectronic technology",
-          "No rating",
-          "",
-          "1120",
-          "Arts Optical International Holdings Limited",
-          "D",
-          "231.76 M HKD\t0.540 HKD\t-10.00%\t302 K\t2.57\t9.33\t0.06 HKD\t—\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "8070",
-          "Keen Ocean International Holding Ltd.",
-          "D",
-          "215 M HKD\t1.075 HKD\t-2.27%\t20 K\t0.10\t3.90\t0.28 HKD\t+239.53%\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "759",
-          "CEC International Holdings Limited",
-          "D",
-          "156.55 M HKD\t0.227 HKD\t-3.40%\t46 K\t0.94\t—\t-0.06 HKD\t+10.64%\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "889",
-          "Datronix Holdings Limited",
-          "D",
-          "124.8 M HKD\t0.340 HKD\t-12.82%\t486 K\t1.77\t—\t-0.06 HKD\t+52.54%\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "712",
-          "Comtec Solar Systems Group Ltd.",
-          "D",
-          "59.36 M HKD\t0.056 HKD\t-6.67%\t420 K\t1.40\t—\t-0.04 HKD\t+5.56%\t0.00%\tElectronic technology",
-          "No rating",
-          "",
-          "8286",
-          "Shanxi Changcheng Microlight Equipment Co. Ltd. Class H",
-          "D",
-          "43.86 M HKD\t0.142 HKD\t+22.41%\t270 K\t1.55\t—\t-0.11 HKD\t+10.05%\t0.00%\tElectronic technology",
-          "No rating"
+          "Symbol", "Mkt cap", "Price", "Chg %", "Vol", "Rel vol", "P/E", "EPS dil", "TTM", "EPS dil growth", "TTM YoY", "Div yield %", "TTM", "Sector", "Analyst rating",
+          "Symbol", "Mkt cap", "Price", "Chg %", "Vol", "Rel vol", "P/E", "EPS dil", "TTM", "EPS dil growth", "TTM YoY", "Div yield %", "TTM", "Sector", "Analyst rating",
+          "2", "2475", "Luxshare Precision Industry Co., Ltd. Class H", "D", "446.21 B HKD\t52.95 HKD\t-1.12%\t436.69 K\t0.19\t—\t—\t—\t0.00%\tElectronic technology", "Strong buy",
+          "6", "6951", "Chaozhou Three-Circle (Group) Co., Ltd. Class H", "D", "272.95 B HKD\t124.1 HKD\t-2.90%\t173.86 K\t0.11\t—\t—\t—\t0.00%\tElectronic technology", "Strong buy",
+          "", "2476", "Victory Giant Technology (HuiZhou) Co., Ltd. Class H", "D", "194.06 B HKD\t195.1 HKD\t-1.22%\t546.33 K\t0.16\t32.72\t5.96 HKD\t—\t0.00%\tElectronic technology", "Strong buy",
+          "3", "3228", "Shenzhen Kinwong Electronic Co., Ltd. Class H", "D", "121.15 B HKD\t74.40 HKD\t-3.19%\t522.7 K\t—\t54.25\t1.37 HKD\t-0.06%\t0.00%\tElectronic technology", "No rating",
+          "", "1989", "Delton Technology (Guangzhou) Inc. Class H", "D", "69.2 B HKD\t118.1 HKD\t-1.25%\t214.2 K\t0.06\t33.36\t3.54 HKD\t—\t0.62%\tElectronic technology", "Strong buy",
+          "", "2382", "Sunny Optical Technology (Group) Co., Ltd.", "D", "69.2 B HKD\t62.05 HKD\t-2.05%\t4.96 M\t0.81\t12.64\t4.91 HKD\t+51.68%\t1.90%\tElectronic technology", "Buy",
+          "", "6088", "FIT Hon Teng Limited", "D", "35.09 B HKD\t4.845 HKD\t-2.02%\t7.95 M\t0.35\t27.10\t0.18 HKD\t+6.56%\t0.00%\tElectronic technology", "Strong buy",
+          "", "1879", "Shanghai Xizhi Technology Co., Ltd Class H", "D", "26.5 B HKD\t280.0 HKD\t-0.64%\t33.41 K\t0.07\t—\t—\t—\t0.00%\tElectronic technology", "Strong buy",
+          "", "1478", "Q Technology (Group) Co. Ltd.", "D", "6.05 B HKD\t5.060 HKD\t0.00%\t2.68 M\t0.78\t3.75\t1.35 HKD\t+214.98%\t10.87%\tElectronic technology", "Buy",
+          "", "1300", "Trigiant Group Ltd.", "D", "5.06 B HKD\t2.625 HKD\t-8.22%\t9.04 M\t0.68\t14.26\t0.18 HKD\t—\t0.00%\tElectronic technology", "No rating",
+          "", "679", "Asia Tele-Net and Technology Corp Ltd", "D", "1.73 B HKD\t4.200 HKD\t-8.10%\t350 K\t0.54\t—\t-0.12 HKD\t-66.36%\t0.88%\tElectronic technology", "No rating",
+          "", "1037", "Maxnerva Technology Services Limited", "D", "444.89 M HKD\t0.620 HKD\t-1.59%\t1.36 M\t3.44\t—\t-0.00 HKD\t-313.64%\t0.00%\tElectronic technology", "No rating",
+          "", "567", "Jsmart Technologies Group Limited", "D", "435.59 M HKD\t0.270 HKD\t0.00%\t180 K\t0.41\t—\t-0.01 HKD\t-0.76%\t0.00%\tElectronic technology", "No rating",
+          "", "1679", "Risecomm Group Holdings Limited", "D", "374.18 M HKD\t1.320 HKD\t+0.76%\t92 K\t1.59\t—\t-0.13 HKD\t+78.80%\t0.00%\tElectronic technology", "No rating",
+          "", "8375", "Data Union Capital International Holdings Group Limited", "D", "317.95 M HKD\t0.800 HKD\t-13.04%\t50 K\t0.40\t—\t-0.05 HKD\t-8.21%\t0.00%\tElectronic technology", "No rating",
+          "", "1480", "Yan Tat Group Holdings Limited", "D", "240 M HKD\t1.000 HKD\t0.00%\t22 K\t0.24\t—\t-0.13 HKD\t-172.50%\t3.00%\tElectronic technology", "No rating",
+          "", "1120", "Arts Optical International Holdings Limited", "D", "231.76 M HKD\t0.540 HKD\t-10.00%\t302 K\t2.57\t9.33\t0.06 HKD\t—\t0.00%\tElectronic technology", "No rating",
+          "", "8070", "Keen Ocean International Holding Ltd.", "D", "215 M HKD\t1.075 HKD\t-2.27%\t20 K\t0.10\t3.90\t0.28 HKD\t+239.53%\t0.00%\tElectronic technology", "No rating",
+          "", "759", "CEC International Holdings Limited", "D", "156.55 M HKD\t0.227 HKD\t-3.40%\t46 K\t0.94\t—\t-0.06 HKD\t+10.64%\t0.00%\tElectronic technology", "No rating",
+          "", "889", "Datronix Holdings Limited", "D", "124.8 M HKD\t0.340 HKD\t-12.82%\t486 K\t1.77\t—\t-0.06 HKD\t+52.54%\t0.00%\tElectronic technology", "No rating",
+          "", "712", "Comtec Solar Systems Group Ltd.", "D", "59.36 M HKD\t0.056 HKD\t-6.67%\t420 K\t1.40\t—\t-0.04 HKD\t+5.56%\t0.00%\tElectronic technology", "No rating",
+          "", "8286", "Shanxi Changcheng Microlight Equipment Co. Ltd. Class H", "D", "43.86 M HKD\t0.142 HKD\t+22.41%\t270 K\t1.55\t—\t-0.11 HKD\t+10.05%\t0.00%\tElectronic technology", "No rating"
         ].join("\n");
 
         function extractTickers(raw) {
@@ -1582,19 +1106,14 @@ HTML_PAGE = r'''<!doctype html>
             if (!TICKER_RE.test(cur)) continue;
             if (NOISE[cur]) continue;
 
-            // Next non-empty line
             var j = i + 1;
             while (j < lines.length && !lines[j].trim()) j++;
             var next = j < lines.length ? lines[j].trim() : "";
 
-            // Line after that
             var k = j + 1;
             while (k < lines.length && !lines[k].trim()) k++;
             var after = k < lines.length ? lines[k].trim() : "";
 
-            // Confirm: next line looks like a company name (has lowercase),
-            // or the next / next-next line is the "D" market marker.
-            // A quote row is never a company name, which filters out stray markers like "D".
             var looksLikeTicker =
               !isDataRow(next) && (/[a-z]/.test(next) || next === "D" || after === "D");
             if (!looksLikeTicker) continue;
@@ -1612,7 +1131,6 @@ HTML_PAGE = r'''<!doctype html>
           var raw = inputEl.value;
           var list = extractTickers(raw);
 
-          // A → Z lexicographic order (digits first, then letters)
           list.sort();
           if (descBox.checked) list.reverse();
 
@@ -1692,10 +1210,485 @@ HTML_PAGE = r'''<!doctype html>
   </body>
 </html>'''
 
+HISTORY_PAGE = r'''<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>{{ symbol }} — Historical Data</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>" />
+    <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+    <style>
+      :root{
+        --bg:#f1f5f9; --card:#ffffff; --text:#1e293b; --muted:#64748b;
+        --border:#e2e8f0; --primary:#2563eb; --stripe:#f8fafc; --hover:#eff6ff;
+      }
+      [data-theme="dark"]{
+        --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8;
+        --border:#334155; --primary:#3b82f6; --stripe:#243449; --hover:#2d3f5c;
+      }
+      *{box-sizing:border-box}
+      body{
+        font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+        margin:0; padding:22px 14px 44px; background:var(--bg); color:var(--text);
+        -webkit-text-size-adjust:100%;
+        transition: background-color 0.3s ease, color 0.3s ease;
+      }
+      .container{
+        max-width: 98%; margin: 0 auto; background:var(--card); border-radius:14px;
+        box-shadow:0 10px 25px -5px rgba(0,0,0,.15); overflow:hidden;
+        transition: background-color 0.3s ease;
+      }
+      
+      .header{background:var(--primary); color:#fff; padding:22px 18px; text-align:center; position:relative;}
+      .header h1{margin:0; font-size:clamp(1.05rem,3.4vw,1.5rem); font-weight:800; word-break:break-word}
+      .header p{margin:6px 0 0; font-size:clamp(.74rem,2.4vw,.9rem); opacity:.88}
+
+      .theme-toggle {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        background: rgba(255, 255, 255, 0.2);
+        color: #fff;
+        border: 1px solid rgba(255, 255, 255, 0.3);
+        padding: 6px 12px;
+        border-radius: 20px;
+        font-size: 0.75rem;
+        font-weight: 600;
+        cursor: pointer;
+        transition: all 0.2s ease;
+        display: flex;
+        align-items: center;
+        gap: 4px;
+      }
+      .theme-toggle:hover { background: rgba(255, 255, 255, 0.3); }
+      @media (max-width: 600px) {
+        .theme-toggle { top: 10px; right: 10px; padding: 4px 8px; font-size: 0.7rem; }
+      }
+
+      .freq-switch{
+        display:inline-flex; gap:4px; margin-top:14px;
+        background:rgba(255,255,255,0.16); padding:4px; border-radius:10px;
+      }
+      .freq-btn{
+        padding:8px 16px; border:none; border-radius:8px; background:transparent;
+        color:#fff; font-weight:700; font-size:0.82rem; cursor:pointer;
+        transition: all .2s ease; letter-spacing:.2px;
+      }
+      .freq-btn:hover{ background:rgba(255,255,255,0.18); }
+      .freq-btn.active{ background:#fff; color:var(--primary); }
+
+      .table-wrap{
+        width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;
+        padding-bottom: 16px;
+      }
+      .table-wrap::-webkit-scrollbar { height: 10px; }
+      .table-wrap::-webkit-scrollbar-track { background: var(--stripe); border-radius: 6px; margin: 0 15px; }
+      .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 2px solid var(--stripe); }
+      .table-wrap::-webkit-scrollbar-thumb:hover { background: var(--muted); }
+
+      table{border-collapse:collapse; width:100%; min-width:max-content}
+      th,td{
+        padding: 8px 10px; border-bottom:1px solid var(--border); white-space:nowrap;
+        font-variant-numeric:tabular-nums;
+      }
+      thead th{
+        background:var(--stripe); color:var(--muted);
+        font-size: 0.75rem; font-weight:700; letter-spacing:.4px;
+        text-transform:uppercase; text-align:center;
+        position:sticky; top:0; z-index:3;
+      }
+      thead th:first-child{
+        left:0; z-index:4; text-align:left; padding-left: 12px;
+        font-size: 0.75rem; font-weight:700;
+        text-transform:uppercase; color:var(--muted); letter-spacing:.4px;
+      }
+      thead th.period-value{
+        text-align:center; color:var(--text);
+        font-size: 0.8rem; font-weight:600;
+        letter-spacing:0; text-transform:none;
+        font-variant-numeric: normal;
+      }
+      tbody td.latest-cell{
+        background: transparent;
+        font-weight: 600;
+        color: var(--text);
+      }
+      tbody th{
+        position:sticky; left:0; z-index:2; background:var(--stripe); text-align:left;
+        font-size: 0.75rem; font-weight:700; color:var(--muted);
+        text-transform:uppercase; letter-spacing:.4px;
+        border-right:1px solid var(--border); padding-left: 12px;
+      }
+      tbody td{
+        text-align:center; font-size: 0.85rem; font-weight:600; color:var(--text);
+      }
+      tbody tr:hover td{background:var(--hover)}
+      tbody tr:hover td.latest-cell{background: var(--hover);}
+      tbody tr:last-child th, tbody tr:last-child td{border-bottom:none}
+
+      .copy-card{
+        padding: 18px;
+        border-top: 1px solid var(--border);
+        background: var(--card);
+        transition: background-color 0.3s ease;
+      }
+      .copy-row{
+        display: flex;
+        flex-wrap: wrap;
+        gap: 16px;
+        align-items: flex-end;
+        justify-content: center;
+      }
+      .copy-field{
+        display: flex;
+        flex-direction: column;
+        gap: 4px;
+      }
+      .copy-label{
+        font-size: 0.7rem;
+        font-weight: 700;
+        color: var(--muted);
+        text-transform: uppercase;
+        letter-spacing: .4px;
+      }
+      .copy-select, .copy-input {
+        padding: 8px 12px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text);
+        background: var(--stripe);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        outline: none;
+        font-family: inherit;
+        font-variant-numeric: tabular-nums;
+        height: 38px;
+        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
+      }
+      .copy-select {
+        cursor: pointer;
+        min-width: 120px;
+      }
+      .copy-input {
+        width: 80px;
+        text-align: center;
+      }
+      .copy-select:focus, .copy-input:focus { border-color: var(--primary); }
+
+      .copy-btn{
+        padding: 0 18px;
+        height: 38px;
+        background: var(--primary);
+        color: #fff;
+        border: none;
+        border-radius: 8px;
+        font-weight: 700;
+        font-size: 0.9rem;
+        cursor: pointer;
+        transition: background .2s;
+        white-space: nowrap;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .copy-btn:hover{ background: #1d4ed8; }
+      .copy-hint{
+        margin: 10px 0 0;
+        font-size: 0.72rem;
+        color: var(--muted);
+        text-align: center;
+        line-height: 1.5;
+      }
+      @media (max-width: 600px){
+        .copy-row { flex-direction: column; align-items: stretch; }
+        .copy-select, .copy-input, .copy-btn { width: 100%; }
+      }
+
+      .foot{padding:14px 18px; font-size:.75rem; color:var(--muted); text-align:center; line-height:1.6}
+      @media (max-width:600px){
+        body{padding:10px 5px 20px}
+        .header{padding:15px 10px}
+        th,td{padding:6px 8px}
+        thead th, thead th:first-child, tbody th{ font-size:0.65rem; }
+        thead th.period-value, tbody td{ font-size:0.75rem; }
+        .foot{font-size:.65rem; padding:10px}
+        .freq-btn{ padding:6px 12px; font-size:0.72rem; }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="container">
+      <div class="header">
+        <button class="theme-toggle" id="themeToggleBtn" title="Switch Theme">🌙 Dark Mode</button>
+        <h1>{{ symbol }} — Historical Data</h1>
+        <p id="headerSub">Loading...</p>
+        <div class="freq-switch">
+          <button type="button" data-freq="quarterly" class="freq-btn">Quarterly</button>
+          <button type="button" data-freq="semiannual" class="freq-btn">Semiannual</button>
+        </div>
+      </div>
+
+      <div id="loadingState" style="text-align:center; padding: 40px; font-weight:bold;">
+        Fetching historical data for {{ symbol }}...
+      </div>
+
+      <div id="content" style="display:none;">
+        <div class="table-wrap">
+          <table>
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
+        </div>
+
+        <div class="copy-card">
+          <div class="copy-row">
+            <div class="copy-field">
+              <label class="copy-label" for="copyLatestPeriod">Latest Period</label>
+              <select id="copyLatestPeriod" class="copy-select"></select>
+            </div>
+            <div class="copy-field">
+              <label class="copy-label" for="copyN">Periods to Copy (n)</label>
+              <input type="number" id="copyN" class="copy-input" min="1" />
+            </div>
+            <button type="button" class="copy-btn" onclick="handleCopyData()">Copy Price Data</button>
+          </div>
+          <p class="copy-hint">Copies the <b>Current</b> close plus the selected period closes as a tab-separated row (values only, no labels).</p>
+        </div>
+
+        <p class="foot" id="footerNote"></p>
+      </div>
+    </div>
+
+    <script>
+      const symbol = "{{ symbol }}";
+      const urlParams = new URLSearchParams(window.location.search);
+      let freq = urlParams.get('freq') === 'semiannual' ? 'semiannual' : 'quarterly';
+      let processedData = null;
+
+      const themeToggleBtn = document.getElementById("themeToggleBtn");
+      function setTheme(theme) {
+        document.documentElement.setAttribute("data-theme", theme);
+        localStorage.setItem("theme", theme);
+        themeToggleBtn.innerText = theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode";
+      }
+      
+      const savedTheme = localStorage.getItem("theme") || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
+      setTheme(savedTheme);
+
+      themeToggleBtn.addEventListener("click", () => {
+        const currentTheme = document.documentElement.getAttribute("data-theme");
+        setTheme(currentTheme === "dark" ? "light" : "dark");
+      });
+
+      function getPeriodLabel(dateStr, freq) {
+        const dt = new Date(dateStr + "T00:00:00");
+        const y = dt.getFullYear();
+        const m = dt.getMonth() + 1;
+        if (m === 3) return `1Q${y}`;
+        if (m === 6) return `1H${y}`;
+        if (m === 9) return `9M${y}`;
+        if (m === 12) return `FY${y}`;
+        return "";
+      }
+
+      function processPeriodData(timestamps, closes, freq) {
+        let latest = null;
+        for (let i = timestamps.length - 1; i >= 0; i--) {
+          if (closes[i] === null || closes[i] === undefined) continue;
+          const d = new Date(timestamps[i] * 1000);
+          latest = { date: d.toISOString().split("T")[0], close: closes[i] };
+          break;
+        }
+
+        const grouped = {};
+        const order = [];
+        for (let i = 0; i < timestamps.length; i++) {
+          if (closes[i] === null || closes[i] === undefined) continue;
+          const d = new Date(timestamps[i] * 1000);
+          const y = d.getFullYear();
+          const m = d.getMonth();
+
+          let key;
+          if (freq === "semiannual") {
+            if (m !== 5 && m !== 11) continue;
+            key = `${y}-H${m === 5 ? 1 : 2}`;
+          } else {
+            if (m !== 2 && m !== 5 && m !== 8 && m !== 11) continue;
+            key = `${y}-Q${Math.floor(m / 3) + 1}`;
+          }
+
+          if (!grouped[key]) order.push(key);
+          grouped[key] = {
+            date: d.toISOString().split("T")[0],
+            close: closes[i],
+            period: getPeriodLabel(d.toISOString().split("T")[0], freq),
+          };
+        }
+
+        const periodData = order.map((k) => grouped[k]);
+        periodData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        return { latest, periodData };
+      }
+
+      async function loadData() {
+        try {
+          // Add padding back for Yahoo Finance API if it's an HK ticker
+          let apiSymbol = symbol;
+          if (symbol.endsWith('.HK')) {
+              let parts = symbol.split('.');
+              let numPart = parts[0];
+              if (/^\d{1,4}$/.test(numPart)) {
+                  apiSymbol = numPart.padStart(4, '0') + '.HK';
+              }
+          }
+
+          const response = await fetch(`/proxy?symbol=${encodeURIComponent(apiSymbol)}&range=10y&interval=1d`);
+          if (!response.ok) throw new Error(`Server returned ${response.status}`);
+          const data = await response.json();
+          if (!data.chart || !data.chart.result || data.chart.result.length === 0) {
+            throw new Error("No data found for this ticker symbol.");
+          }
+          const result = data.chart.result[0];
+          processedData = processPeriodData(result.timestamp, result.indicators.quote[0].close, freq);
+          document.getElementById("loadingState").style.display = "none";
+          document.getElementById("content").style.display = "block";
+          render();
+        } catch (error) {
+          document.getElementById("loadingState").innerHTML = `<span style="color:#ef4444">Error: ${error.message}</span><br><small>Please check the ticker symbol.</small>`;
+        }
+      }
+
+      function render() {
+        if (!processedData || !processedData.periodData || processedData.periodData.length === 0) return;
+
+        const { latest, periodData } = processedData;
+        const fmtClose = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
+        const latestDateCell = latest ? latest.date : "—";
+        const latestCloseCell = latest ? fmtClose(latest.close) : "—";
+        const latestHeader = latest ? latest.date : "—";
+
+        document.getElementById("headerSub").innerText =
+          `${freq === 'semiannual' ? 'Semiannual' : 'Quarter-End'} Closing Prices · Last 10 Years · Newest First · Includes Current Close`;
+
+        document.querySelectorAll('[data-freq]').forEach(btn => {
+          btn.classList.toggle('active', btn.getAttribute('data-freq') === freq);
+        });
+
+        document.getElementById("tableHead").innerHTML = `
+          <tr>
+            <th scope="col">Period</th>
+            <th scope="col" class="period-value">Current</th>
+            ${periodData.map((d) => `<th scope="col" class="period-value">${d.period}</th>`).join("")}
+          </tr>
+        `;
+
+        document.getElementById("tableBody").innerHTML = `
+          <tr>
+            <th scope="row">Actual Date</th>
+            <td class="latest-cell">${latestDateCell}</td>
+            ${periodData.map((d) => `<td>${d.date}</td>`).join("")}
+          </tr>
+          <tr>
+            <th scope="row">Close Price</th>
+            <td class="latest-cell">${latestCloseCell}</td>
+            ${periodData.map((d) => `<td>${fmtClose(d.close)}</td>`).join("")}
+          </tr>
+        `;
+
+        document.getElementById("footerNote").innerHTML =
+          `Swipe horizontally to view every period. All figures are period-end closing prices in the listing currency. The <b>Current</b> column shows the most recent trading day close (${latestHeader}).`;
+
+        const selectEl = document.getElementById("copyLatestPeriod");
+        selectEl.innerHTML = periodData.map((d, i) => `<option value="${i}">${d.period}</option>`).join("");
+
+        const defaultN = Math.min(freq === "semiannual" ? 4 : 8, periodData.length);
+        document.getElementById("copyN").value = defaultN;
+        document.getElementById("copyN").max = periodData.length;
+      }
+
+      function handleCopyData() {
+        if (!processedData) return;
+        const startIndex = parseInt(document.getElementById("copyLatestPeriod").value, 10);
+        const nInput = document.getElementById("copyN");
+        let n = parseInt(nInput.value, 10);
+        if (isNaN(n) || n < 1) n = 1;
+
+        const selectedPeriods = processedData.periodData.slice(startIndex, startIndex + n);
+        nInput.value = selectedPeriods.length;
+
+        const values = [];
+        if (processedData.latest) values.push(processedData.latest.close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 }));
+        for (let i = 0; i < selectedPeriods.length; i++) {
+          values.push(selectedPeriods[i].close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 }));
+        }
+        const text = values.join("\t");
+
+        const isDark = document.documentElement.getAttribute("data-theme") === "dark";
+        
+        function toast(icon, title) {
+          if (window.Swal) {
+            Swal.fire({
+              toast: true, position: "top", showConfirmButton: false, timer: 3000,
+              timerProgressBar: true, background: isDark ? "#1e293b" : "#ffffff",
+              color: isDark ? "#f1f5f9" : "#1e293b", icon: icon, title: title
+            });
+          } else { alert(title); }
+        }
+        function onOk() { toast("success", "Copied " + values.length + " prices."); }
+        function onFail() { toast("error", "Copy failed — please select and copy manually."); }
+        
+        if (navigator.clipboard && window.isSecureContext) {
+          navigator.clipboard.writeText(text).then(onOk).catch(function () { 
+            var ta = document.createElement("textarea");
+            ta.value = text; ta.style.position = "fixed"; ta.style.top = "-1000px";
+            document.body.appendChild(ta); ta.select();
+            try { document.execCommand("copy") ? onOk() : onFail(); } catch (e) { onFail(); }
+            document.body.removeChild(ta);
+          });
+        } else {
+          var ta = document.createElement("textarea");
+          ta.value = text; ta.style.position = "fixed"; ta.style.top = "-1000px";
+          document.body.appendChild(ta); ta.select();
+          try { document.execCommand("copy") ? onOk() : onFail(); } catch (e) { onFail(); }
+          document.body.removeChild(ta);
+        }
+      }
+
+      document.querySelectorAll('[data-freq]').forEach(btn => {
+        btn.addEventListener('click', (e) => {
+          const f = btn.getAttribute('data-freq');
+          if (f === freq) return;
+          freq = f;
+          const newUrl = new URL(window.location);
+          newUrl.searchParams.set('freq', freq);
+          window.history.pushState({}, '', newUrl);
+          loadData();
+        });
+      });
+
+      loadData();
+    </script>
+  </body>
+</html>'''
+
 
 @app.route("/")
 def index():
     return render_template_string(HTML_PAGE)
+
+
+@app.route("/history/<symbol>")
+def history(symbol):
+    # Strip leading zeros for display (e.g., 0051.HK -> 51.HK)
+    display_symbol = symbol
+    if symbol.upper().endswith('.HK'):
+        parts = symbol.split('.')
+        num_part = parts[0]
+        if num_part.isdigit() and len(num_part) <= 4:
+            num_part = num_part.lstrip('0') or '0'
+            display_symbol = f"{num_part}.HK"
+    return render_template_string(HISTORY_PAGE, symbol=display_symbol)
 
 
 @app.route("/proxy")
