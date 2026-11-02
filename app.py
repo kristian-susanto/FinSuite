@@ -941,7 +941,7 @@ HTML_PAGE = r'''<!doctype html>
             <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
             <title>${symbol} — Historical Data</title>
-            <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💼</text></svg>" />
+            <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>" />
             <style>
               :root{
                 --bg:#f1f5f9; --card:#ffffff; --text:#1e293b; --muted:#64748b;
@@ -1130,8 +1130,8 @@ HTML_PAGE = r'''<!doctype html>
             <head>
             <meta charset="UTF-8" />
             <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-            <title>Historical Data — Error</title>
-            <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>💼</text></svg>" />
+            <title>Error — Historical Data</title>
+            <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>" />
             </head>
             <body style="font-family:system-ui;padding:40px 20px;text-align:center;background:#f1f5f9;color:#1e293b;margin:0">
               <h2 style="color:#ef4444;margin:0 0 10px">Error Fetching Data</h2>
