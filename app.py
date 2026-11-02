@@ -755,7 +755,7 @@ HTML_PAGE = r'''<!doctype html>
         return [
           { id: "pkg-history-py", name: "⏳ Historical Data — Python (yfinance quarterly / semiannual closes)", url: "local", local: true },
           { id: "pkg-income-tv", name: "📑 Income Statement — TradingView", url: `${tv}/financials-income-statement/?statements-period=${period}&selected=total_revenue%2Cnet_revenue%2Cnet_income%2Cdiluted_shares_outstanding` },
-          { id: "pkg-balance-tv", name: "⚖️ Balance Sheet — TradingView", url: `${tv}/financials-balance-sheet/?statements-period=${period}&selected=cash_n_equivalents%2Ctotal_equity` },
+          { id: "pkg-balance-tv", name: "⚖️ Balance Sheet — TradingView", url: `${tv}/financials-balance-sheet/?statements-period=${period}&selected=total_equity` },
           { id: "pkg-ratios-tv", name: "📊 Ratios — TradingView", url: `${tv}/financials-statistics-and-ratios/?statistics-period=${period}&selected=price_earnings%2Cprice_book%2Cnet_margin` },
         ];
       }
@@ -768,7 +768,7 @@ HTML_PAGE = r'''<!doctype html>
           { id: "overview", name: "🏢 Overview", url: `${base}/` },
           { id: "history", name: "⏳ Historical Data", url: `${base}/?timeframe=120M` },
           { id: "income", name: "📑 Income Statement", url: `${base}/financials-income-statement/?statements-period=FQ&selected=total_revenue%2Cnet_revenue%2Cnet_income%2Cdiluted_shares_outstanding` },
-          { id: "balance", name: "⚖️ Balance Sheet", url: `${base}/financials-balance-sheet/?statements-period=FQ&selected=cash_n_equivalents%2Ctotal_equity` },
+          { id: "balance", name: "⚖️ Balance Sheet", url: `${base}/financials-balance-sheet/?statements-period=FQ&selected=total_equity` },
           { id: "cash", name: "🔄 Cash Flow", url: `${base}/financials-cash-flow/?statements-period=FQ&selected=` },
           { id: "stats", name: "📊 Financial Stats", url: `${base}/financials-statistics-and-ratios/?statistics-period=FQ&selected=price_earnings%2Cprice_book%2Cnet_margin` },
           { id: "revenue", name: "💰 Revenue", url: `${base}/financials-revenue/` },
