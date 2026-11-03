@@ -1393,6 +1393,7 @@ HISTORY_PAGE = r'''<!doctype html>
         justify-content: center;
       }
       .copy-btn:hover{ background: #1d4ed8; }
+      .copy-btn:disabled{ opacity: .9; cursor: default; }
       .copy-hint{
         margin: 10px 0 0;
         font-size: 0.72rem;
@@ -1449,11 +1450,11 @@ HISTORY_PAGE = r'''<!doctype html>
             </div>
             <div class="copy-field">
               <label class="copy-label" for="copyN">Periods to Copy (n)</label>
-              <input type="number" id="copyN" class="copy-input" min="1" />
+              <input type="number" id="copyN" class="copy-input" min="1" enterkeyhint="done" />
             </div>
             <button type="button" class="copy-btn" onclick="handleCopyData()">Copy Price Data</button>
           </div>
-          <p class="copy-hint">Copies the <b>Current</b> close plus the selected period closes as a tab-separated row (values only, no labels).</p>
+          <p class="copy-hint">Copies the <b>Current</b> close plus the selected period closes as a tab-separated row (values only, no labels). Press <b>Enter</b> to copy instantly.</p>
         </div>
 
         <p class="foot" id="footerNote"></p>
@@ -1607,6 +1608,20 @@ HISTORY_PAGE = r'''<!doctype html>
         document.getElementById("copyN").max = periodData.length;
       }
 
+      const copyBtnEl = document.querySelector(".copy-btn");
+      function flashCopyBtn() {
+        if (!copyBtnEl) return;
+        if (copyBtnEl.dataset.busy === "1") return;
+        copyBtnEl.dataset.busy = "1";
+        copyBtnEl.disabled = true;
+        copyBtnEl.textContent = "Copied ✓";
+        setTimeout(function () {
+          copyBtnEl.textContent = "Copy Price Data";
+          copyBtnEl.disabled = false;
+          copyBtnEl.dataset.busy = "0";
+        }, 900);
+      }
+
       function handleCopyData() {
         if (!processedData) return;
         const startIndex = parseInt(document.getElementById("copyLatestPeriod").value, 10);
@@ -1635,7 +1650,7 @@ HISTORY_PAGE = r'''<!doctype html>
             });
           } else { alert(title); }
         }
-        function onOk() { toast("success", "Copied " + values.length + " prices."); }
+        function onOk() { toast("success", "Copied " + values.length + " prices."); flashCopyBtn(); }
         function onFail() { toast("error", "Copy failed — please select and copy manually."); }
         
         if (navigator.clipboard && window.isSecureContext) {
@@ -1654,6 +1669,17 @@ HISTORY_PAGE = r'''<!doctype html>
           document.body.removeChild(ta);
         }
       }
+
+      // ── Enter = copy price data instantly ──
+      document.addEventListener("keydown", function (e) {
+        if (e.key !== "Enter" && e.keyCode !== 13) return;
+        if (e.isComposing) return; // abaikan Enter saat IME masih aktif
+        const tag = (e.target.tagName || "").toUpperCase();
+        if (tag === "BUTTON" || tag === "TEXTAREA" || tag === "A") return; // biarkan default
+        if (!processedData || !processedData.periodData || processedData.periodData.length === 0) return;
+        e.preventDefault();
+        handleCopyData();
+      }, { capture: true });
 
       document.querySelectorAll('[data-freq]').forEach(btn => {
         btn.addEventListener('click', (e) => {
