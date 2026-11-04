@@ -1,5 +1,20 @@
 from flask import Flask, request, jsonify, render_template_string
+from werkzeug.serving import WSGIRequestHandler
 import requests
+import logging
+
+logging.getLogger("werkzeug").setLevel(logging.ERROR)
+
+class QuietRequestHandler(WSGIRequestHandler):
+    """Handler yang tidak mencetak baris access log per request."""
+    def log_request(self, code="-", size="-"):
+        pass
+
+    def log_info(self, *args, **kwargs):
+        pass
+
+    def log(self, type, message, *args):
+        pass
 
 app = Flask(__name__)
 
@@ -1650,7 +1665,7 @@ HISTORY_PAGE = r'''<!doctype html>
             });
           } else { alert(title); }
         }
-        function onOk() { toast("success", "Copied " + values.length + " prices."); flashCopyBtn(); }
+        function onOk() { toast("success", "Successfully copied!"); flashCopyBtn(); }
         function onFail() { toast("error", "Copy failed — please select and copy manually."); }
         
         if (navigator.clipboard && window.isSecureContext) {
@@ -1738,4 +1753,4 @@ if __name__ == "__main__":
     print("  Server Running")
     print("  Open:  http://localhost:5000")
     print("=" * 55)
-    app.run(host="0.0.0.0", port=5000, debug=False)
+    app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, request_handler=QuietRequestHandler)
