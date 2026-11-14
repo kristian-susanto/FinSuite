@@ -315,15 +315,6 @@ pip install -r requirements.txt
 python app.py
 ```
 
-You should see:
-
-```text
-=======================================================
-  Server Running
-  Open:  http://localhost:5000
-=======================================================
-```
-
 Open your browser and navigate to `http://localhost:5000`.
 
 ---

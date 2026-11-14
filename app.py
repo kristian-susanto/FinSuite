@@ -829,8 +829,7 @@ HTML_PAGE = r'''<!doctype html>
         if (getSelectedSource().includes("package")) return;
         checkboxGrid.querySelectorAll('input[type="checkbox"]').forEach((cb) => (cb.checked = selectAll));
       }
-
-      // ── OPEN HISTORY TAB (Removes leading zeros for HKEX) ──
+      
       function openHistoryTab(exchangeCode, ticker, initialFreq) {
         const suffix = YAHOO_SUFFIX_MAP[exchangeCode.toUpperCase()] || "";
         let baseTicker = ticker.toUpperCase();
@@ -1685,7 +1684,6 @@ HISTORY_PAGE = r'''<!doctype html>
         }
       }
 
-      // ── Enter = copy price data instantly ──
       document.addEventListener("keydown", function (e) {
         if (e.key !== "Enter" && e.keyCode !== 13) return;
         if (e.isComposing) return; // abaikan Enter saat IME masih aktif
@@ -1749,8 +1747,4 @@ def proxy():
 
 
 if __name__ == "__main__":
-    print("=" * 55)
-    print("  Server Running")
-    print("  Open:  http://localhost:5000")
-    print("=" * 55)
     app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, request_handler=QuietRequestHandler)
