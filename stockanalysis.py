@@ -6,13 +6,10 @@ import logging
 logging.getLogger("werkzeug").setLevel(logging.ERROR)
 
 class QuietRequestHandler(WSGIRequestHandler):
-    """Handler yang tidak mencetak baris access log per request."""
     def log_request(self, code="-", size="-"):
         pass
-
     def log_info(self, *args, **kwargs):
         pass
-
     def log(self, type, message, *args):
         pass
 
@@ -48,6 +45,8 @@ HTML_PAGE = r'''<!doctype html>
         justify-content: space-between; align-items: center; gap: 12px;
         flex-wrap: wrap; border-bottom: 2px solid var(--border); padding-bottom: 1rem; }
       header h1 { font-size: clamp(1.4rem, 3.2vw, 1.8rem); font-weight: 800; letter-spacing: -0.5px; }
+      header h1 .badge { font-size: 0.65em; font-weight: 700; background: var(--success); color: #fff;
+        padding: 3px 10px; border-radius: 999px; margin-left: 8px; vertical-align: middle; letter-spacing: 0; }
       .theme-toggle { background-color: var(--bg-card); color: var(--text-main);
         border: 1px solid var(--border); padding: 8px 16px; border-radius: 20px;
         font-size: 0.9rem; font-weight: 600; cursor: pointer; display: flex;
@@ -196,11 +195,10 @@ HTML_PAGE = r'''<!doctype html>
           <div class="radio-group">
             <label class="radio-option"><input type="radio" name="source" value="quarterly_package" checked /> Quarterly Package</label>
             <label class="radio-option"><input type="radio" name="source" value="semester_package" /> Semester Package</label>
-            <label class="radio-option"><input type="radio" name="source" value="tradingview" /> TradingView</label>
             <label class="radio-option"><input type="radio" name="source" value="stockanalysis" /> StockAnalysis</label>
           </div>
           <p class="source-note">
-            <b>Package mode</b> opens a fixed bundle of <b>4 tabs</b>: Historical Data (Python yfinance), Income Statement (TradingView), Balance Sheet (TradingView), and Ratios (TradingView).
+            <b>Package mode</b> opens a fixed bundle of <b>4 tabs</b>: Historical Data (Python yfinance), Income Statement, Balance Sheet, and Ratios.
           </p>
         </div>
 
@@ -292,7 +290,7 @@ HTML_PAGE = r'''<!doctype html>
           <button id="tickerSampleBtn" class="btn-action btn-ghost" type="button">Load sample</button>
           <button id="tickerClearBtn" class="btn-action btn-ghost" type="button">Clear</button>
         </div>
-                <p class="foot">Paste output containing standalone ticker lines. The extractor detects standalone uppercase symbols (1–6 characters) and numeric ticker codes (1–6 digits, e.g. <b>2</b>, <b>6</b>, <b>1038</b>), skips quote rows and market markers such as <b>D</b>, sorts them in strict A → Z / 0 → 9 order, and formats them for clean spreadsheet pasting. Use <b>one per line</b> for a column, or <b>tab-separated</b> for a single row.</p>
+        <p class="foot">Paste output containing standalone ticker lines. The extractor detects standalone uppercase symbols (1–6 characters) and numeric ticker codes (1–6 digits, e.g. <b>2</b>, <b>6</b>, <b>1038</b>), skips quote rows and market markers such as <b>D</b>, sorts them in strict A → Z / 0 → 9 order, and formats them for clean spreadsheet pasting. Use <b>one per line</b> for a column, or <b>tab-separated</b> for a single row.</p>
       </section>
     </main>
 
@@ -311,12 +309,10 @@ HTML_PAGE = r'''<!doctype html>
       let count = 0;
 
       const exchanges = [
-        // A
         { name: "Abu Dhabi Securities Exchange — United Arab Emirates", code: "ADX" },
         { name: "Aquis Exchange — United Kingdom", code: "AQUIS" },
         { name: "Athens Stock Exchange — Greece", code: "ATHEX" },
         { name: "Australian Securities Exchange — Australia", code: "ASX" },
-        // B
         { name: "B3 (Bovespa) — Brazil", code: "BMFBOVESPA" },
         { name: "Bahrain Bourse — Bahrain", code: "BAHRAIN" },
         { name: "Belgrade Stock Exchange — Serbia", code: "BELEX" },
@@ -340,18 +336,15 @@ HTML_PAGE = r'''<!doctype html>
         { name: "Bulgarian Stock Exchange — Bulgaria", code: "BSESOF" },
         { name: "Bursa Malaysia — Malaysia", code: "MYX" },
         { name: "BX Swiss — Switzerland", code: "BX" },
-        // C
         { name: "Canadian Securities Exchange — Canada", code: "CSE" },
         { name: "Casablanca Stock Exchange — Morocco", code: "CSEMA" },
         { name: "Cboe Canada (NEO) — Canada", code: "NEO" },
         { name: "China Financial Futures Exchange — Mainland China", code: "CFFEX" },
         { name: "Colombo Stock Exchange — Sri Lanka", code: "CSELK" },
         { name: "Cyprus Stock Exchange — Cyprus", code: "CSECY" },
-        // D
         { name: "Dhaka Stock Exchange — Bangladesh", code: "DSEBD" },
         { name: "Dubai Financial Market — United Arab Emirates", code: "DFM" },
         { name: "Düsseldorf Stock Exchange — Germany", code: "DUS" },
-        // E
         { name: "Egyptian Exchange — Egypt", code: "EGX" },
         { name: "Euronext Amsterdam — Netherlands", code: "EURONEXTAMS" },
         { name: "Euronext Brussels — Belgium", code: "EURONEXTBRU" },
@@ -360,32 +353,24 @@ HTML_PAGE = r'''<!doctype html>
         { name: "Euronext Oslo — Norway", code: "EURONEXTOSE" },
         { name: "Euronext Paris — France", code: "EURONEXTPAR" },
         { name: "EuroTLX — Italy", code: "EUROTLX" },
-        // F
         { name: "Frankfurt Stock Exchange — Germany", code: "FWB" },
         { name: "Fukuoka Stock Exchange — Japan", code: "FSE" },
-        // H
         { name: "Hamburg Stock Exchange — Germany", code: "HAM" },
         { name: "Hanoi Stock Exchange — Vietnam", code: "HNX" },
         { name: "Hanover Stock Exchange — Germany", code: "HAN" },
         { name: "Ho Chi Minh Stock Exchange — Vietnam", code: "HOSE" },
         { name: "Hong Kong Stock Exchange — Hong Kong", code: "HKEX" },
-        // I
         { name: "Indonesia Stock Exchange — Indonesia", code: "IDX" },
-        // J
         { name: "Johannesburg Stock Exchange — South Africa", code: "JSE" },
-        // K
         { name: "Korea Exchange — South Korea", code: "KRX" },
-        // L
         { name: "Lang & Schwarz — Germany", code: "LS" },
         { name: "Ljubljana Stock Exchange — Slovenia", code: "LJSE" },
         { name: "London Stock Exchange — United Kingdom", code: "LSE" },
         { name: "LS Exchange — Germany", code: "LSX" },
         { name: "LSE International — United Kingdom", code: "LSIN" },
         { name: "Luxembourg Stock Exchange — Luxembourg", code: "LUXSE" },
-        // M
         { name: "Moscow Exchange — Russia", code: "RUS" },
         { name: "Munich Stock Exchange — Germany", code: "MUN" },
-        // N
         { name: "Nagoya Stock Exchange — Japan", code: "NAG" },
         { name: "Nairobi Securities Exchange — Kenya", code: "NSEKE" },
         { name: "Nasdaq — United States", code: "NASDAQ" },
@@ -404,15 +389,11 @@ HTML_PAGE = r'''<!doctype html>
         { name: "NewConnect — Poland", code: "NEWCONNECT" },
         { name: "Nigerian Exchange — Nigeria", code: "NSENG" },
         { name: "Nordic Growth Market — Sweden", code: "NGM" },
-        // O
         { name: "OTC Markets — United States", code: "OTC" },
-        // P
         { name: "Pakistan Stock Exchange — Pakistan", code: "PSX" },
         { name: "Philippine Stock Exchange — Philippines", code: "PSE" },
         { name: "Prague Stock Exchange — Czech Republic", code: "PSECZ" },
-        // Q
         { name: "Qatar Stock Exchange — Qatar", code: "QSE" },
-        // S
         { name: "Sapporo Securities Exchange — Japan", code: "SAPSE" },
         { name: "Saudi Stock Exchange (Tadawul) — Saudi Arabia", code: "TADAWUL" },
         { name: "Shanghai Futures Exchange — Mainland China", code: "SHFE" },
@@ -422,7 +403,6 @@ HTML_PAGE = r'''<!doctype html>
         { name: "SIX Swiss Exchange — Switzerland", code: "SIX" },
         { name: "Stock Exchange of Thailand — Thailand", code: "SET" },
         { name: "Stuttgart Stock Exchange — Germany", code: "SWB" },
-        // T
         { name: "Taipei Exchange — Taiwan", code: "TPEX" },
         { name: "Taiwan Stock Exchange — Taiwan", code: "TWSE" },
         { name: "Tel Aviv Stock Exchange — Israel", code: "TASE" },
@@ -430,144 +410,45 @@ HTML_PAGE = r'''<!doctype html>
         { name: "Toronto Stock Exchange — Canada", code: "TSX" },
         { name: "Tradegate — Germany", code: "TRADEGATE" },
         { name: "TSX Venture Exchange — Canada", code: "TSXV" },
-        // U
         { name: "UPCoM — Vietnam", code: "UPCOM" },
-        // V
         { name: "Vienna Stock Exchange — Austria", code: "VIE" },
-        // W
         { name: "Warsaw Stock Exchange — Poland", code: "GPW" },
-        // X
         { name: "Xetra — Germany", code: "XETR" },
-        // Z
         { name: "Zagreb Stock Exchange — Croatia", code: "ZSE" },
         { name: "Zhengzhou Commodity Exchange — Mainland China", code: "ZCE" },
       ];
 
       const YAHOO_SUFFIX_MAP = {
-        // A
-        ADX: ".AE",
-        AQUIS: ".L",
-        ASX: ".AX",
-        ATHEX: ".AT",
-        // B
-        BAHRAIN: ".BH",
-        BCBA: ".BA",
-        BCS: ".SN",
-        BELEX: ".BE",
-        BET: ".BD",
-        BIST: ".IS",
-        BIVA: ".MX",
-        BME: ".MC",
-        BMFBOVESPA: ".SA",
-        BMV: ".MX",
-        BSE: ".BO",
-        BSESOF: ".SO",
-        BSSE: ".BS",
-        BVC: ".CL",
-        BVCV: ".CC",
-        BVL: ".LM",
-        BVB: ".RO",
-        BYMA: ".BA",
-        // C
-        CSECY: ".CY",
-        CSE: ".CN",
-        CSEMA: ".MA",
-        CSELK: ".CM",
-        // D
-        DFM: ".AE",
-        DUS: ".DU",
-        DSEBD: ".BD",
-        // E
-        EGX: ".CA",
-        EURONEXTAMS: ".AS",
-        EURONEXTBRU: ".BR",
-        EURONEXTOSE: ".OL",
-        EURONEXTPAR: ".PA",
-        EURONEXTDUB: ".IR",
-        EURONEXTLIS: ".LS",
-        EUROTLX: ".MI",
-        // F
-        FSE: ".F",
-        FWB: ".F",
-        // G
-        GPW: ".WA",
-        // H
-        HAM: ".HM",
-        HAN: ".HA",
-        HNX: ".VN",
-        HKEX: ".HK",
-        HOSE: ".VN",
-        // I
-        IDX: ".JK",
-        // J
-        JSE: ".JO",
-        // K
-        KRX: ".KS",
-        KSE: ".KW",
-        // L
-        LJSE: ".LJ",
-        LSE: ".L",
-        LS: ".LS",
-        LSIN: ".L",
-        LSX: ".LS",
-        LUXSE: ".LU",
-        // M
-        MIL: ".MI",
-        MUN: ".MU",
-        MYX: ".KL",
-        // N
-        NAG: ".N",
-        NASDAQ: "",
-        NASDAQDUBAI: ".AE",
-        NEWCONNECT: ".WA",
-        NEO: ".NE",
-        NGM: ".ST",
-        NSE: ".NS",
-        NSEKE: ".NR",
-        NSENG: ".LG",
-        NZX: ".NZ",
-        // O
-        OMXCOP: ".CO",
-        OMXHEX: ".HE",
-        OMXICE: ".IC",
-        OMXRSE: ".RG",
-        OMXSTO: ".ST",
-        OMXTSE: ".TL",
-        OMXVSE: ".VS",
-        OTC: "",
-        // P
-        PSECZ: ".PR",
-        PSE: ".PS",
-        PSX: ".KA",
-        // Q
-        QSE: ".QA",
-        // R
+        ADX: ".AE", AQUIS: ".L", ASX: ".AX", ATHEX: ".AT",
+        BAHRAIN: ".BH", BCBA: ".BA", BCS: ".SN", BELEX: ".BE",
+        BET: ".BD", BIST: ".IS", BIVA: ".MX", BME: ".MC",
+        BMFBOVESPA: ".SA", BMV: ".MX", BSE: ".BO", BSESOF: ".SO",
+        BSSE: ".BS", BVC: ".CL", BVCV: ".CC", BVL: ".LM",
+        BVB: ".RO", BYMA: ".BA",
+        CSECY: ".CY", CSE: ".CN", CSEMA: ".MA", CSELK: ".CM",
+        DFM: ".AE", DUS: ".DU", DSEBD: ".BD",
+        EGX: ".CA", EURONEXTAMS: ".AS", EURONEXTBRU: ".BR",
+        EURONEXTOSE: ".OL", EURONEXTPAR: ".PA", EURONEXTDUB: ".IR",
+        EURONEXTLIS: ".LS", EUROTLX: ".MI",
+        FSE: ".F", FWB: ".F", GPW: ".WA",
+        HAM: ".HM", HAN: ".HA", HNX: ".VN", HKEX: ".HK", HOSE: ".VN",
+        IDX: ".JK", JSE: ".JO", KRX: ".KS", KSE: ".KW",
+        LJSE: ".LJ", LSE: ".L", LS: ".LS", LSIN: ".L",
+        LSX: ".LS", LUXSE: ".LU",
+        MIL: ".MI", MUN: ".MU", MYX: ".KL",
+        NAG: ".N", NASDAQ: "", NASDAQDUBAI: ".AE",
+        NEWCONNECT: ".WA", NEO: ".NE", NGM: ".ST",
+        NSE: ".NS", NSEKE: ".NR", NSENG: ".LG", NZX: ".NZ",
+        OMXCOP: ".CO", OMXHEX: ".HE", OMXICE: ".IC",
+        OMXRSE: ".RG", OMXSTO: ".ST", OMXTSE: ".TL",
+        OMXVSE: ".VS", OTC: "",
+        PSECZ: ".PR", PSE: ".PS", PSX: ".KA", QSE: ".QA",
         RUS: ".ME",
-        // S
-        SAPSE: ".S",
-        SET: ".BK",
-        SGX: ".SI",
-        SIX: ".SW",
-        SSE: ".SS",
-        SWB: ".SG",
-        SZSE: ".SZ",
-        // T
-        TADAWUL: ".SR",
-        TASE: ".TA",
-        TRADEGATE: ".TG",
-        TSX: ".TO",
-        TSXV: ".V",
-        TPEX: ".TWO",
-        TSE: ".T",
-        TWSE: ".TW",
-        // U
-        UPCOM: ".VN",
-        // V
-        VIE: ".VI",
-        // X
-        XETR: ".DE",
-        // Z
-        ZSE: ".ZG",
+        SAPSE: ".S", SET: ".BK", SGX: ".SI", SIX: ".SW",
+        SSE: ".SS", SWB: ".SG", SZSE: ".SZ",
+        TADAWUL: ".SR", TASE: ".TA", TRADEGATE: ".TG",
+        TSX: ".TO", TSXV: ".V", TPEX: ".TWO", TSE: ".T", TWSE: ".TW",
+        UPCOM: ".VN", VIE: ".VI", XETR: ".DE", ZSE: ".ZG",
       };
 
       window.addEventListener("DOMContentLoaded", () => {
@@ -600,128 +481,35 @@ HTML_PAGE = r'''<!doctype html>
       }
 
       const SA_EXCHANGE_MAP = {
-        // A
-        ADX: "ADX",
-        AQUIS: "AQU",
-        ASX: "ASX",
-        ATHEX: "ATH",
-        // B
-        BAHRAIN: "BAX",
-        BCBA: "BCBA",
-        BELEX: "BELEX",
-        BET: "BUD",
-        BIST: "IST",
-        BME: "BME",
-        BMFBOVESPA: "BVMF",
-        BMV: "BMV",
-        BSE: "BOM",
-        BSESOF: "BUL",
-        BSSE: "BSSE",
-        BVC: "BVC",
-        BVCV: "CCSE",
-        BVL: "BVL",
-        BYMA: "BCBA",
-        BVB: "BVB",
-        // C
-        CSE: "CSE",
-        CSECY: "CYS",
-        CSEMA: "CBSE",
-        CSELK: "COSE",
-        // D
-        DFM: "DFM",
-        DSEBD: "DSE",
-        DUS: "DUSE",
-        // E
-        EGX: "EGX",
-        EURONEXTAMS: "AMS",
-        EURONEXTBRU: "EBR",
-        EURONEXTDUB: "ISE",
-        EURONEXTLIS: "ELI",
-        EURONEXTOSE: "OSL",
-        EURONEXTPAR: "EPA",
-        EUROTLX: "BIT",
-        // F
-        FSE: "FKSE",
-        FWB: "FRA",
-        // G
-        GPW: "WSE",
-        // H
-        HAM: "HAM",
-        HAN: "HAM",
-        HNX: "HNX",
-        HKEX: "HKG",
-        HOSE: "HOSE",
-        // I
-        IDX: "IDX",
-        // J
-        JSE: "JSE",
-        // K
-        KRX: "KRX",
-        KSE: "KWSE",
-        // L
-        LJSE: "LJSE",
-        LS: "FRA",
-        LSE: "LON",
-        LSIN: "LON",
-        LSX: "FRA",
-        LUXSE: "LUX",
-        // M
-        MIL: "BIT",
-        MUN: "MUN",
-        MYX: "KLSE",
-        // N
-        NAG: "XNGO",
-        NASDAQ: "NASDAQ",
-        NASDAQDUBAI: "DFM",
-        NEO: "NEO",
-        NEWCONNECT: "WSE",
-        NGM: "NGM",
-        NSE: "NSE",
-        NSEKE: "NASE",
-        NSENG: "NGX",
-        NZX: "NZE",
-        // O
-        OMXCOP: "CPH",
-        OMXHEX: "HEL",
-        OMXICE: "ICE",
-        OMXRSE: "RSE",
-        OMXSTO: "STO",
-        OMXTSE: "TAL",
-        OMXVSE: "VSE",
-        OTC: "OTC",
-        // P
-        PSECZ: "PRA",
-        PSE: "PSE",
-        PSX: "PSX",
-        // Q
-        QSE: "QSE",
-        // R
+        ADX: "ADX", AQUIS: "AQU", ASX: "ASX", ATHEX: "ATH",
+        BAHRAIN: "BAX", BCBA: "BCBA", BELEX: "BELEX", BET: "BUD",
+        BIST: "IST", BME: "BME", BMFBOVESPA: "BVMF", BMV: "BMV",
+        BSE: "BOM", BSESOF: "BUL", BSSE: "BSSE", BVC: "BVC",
+        BVCV: "CCSE", BVL: "BVL", BYMA: "BCBA", BVB: "BVB",
+        CSE: "CSE", CSECY: "CYS", CSEMA: "CBSE", CSELK: "COSE",
+        DFM: "DFM", DSEBD: "DSE", DUS: "DUSE",
+        EGX: "EGX", EURONEXTAMS: "AMS", EURONEXTBRU: "EBR",
+        EURONEXTDUB: "ISE", EURONEXTLIS: "ELI", EURONEXTOSE: "OSL",
+        EURONEXTPAR: "EPA", EUROTLX: "BIT",
+        FSE: "FKSE", FWB: "FRA", GPW: "WSE",
+        HAM: "HAM", HAN: "HAM", HNX: "HNX", HKEX: "HKG", HOSE: "HOSE",
+        IDX: "IDX", JSE: "JSE", KRX: "KRX", KSE: "KWSE",
+        LJSE: "LJSE", LS: "FRA", LSE: "LON", LSIN: "LON",
+        LSX: "FRA", LUXSE: "LUX",
+        MIL: "BIT", MUN: "MUN", MYX: "KLSE",
+        NAG: "XNGO", NASDAQ: "NASDAQ", NASDAQDUBAI: "DFM",
+        NEO: "NEO", NEWCONNECT: "WSE", NGM: "NGM",
+        NSE: "NSE", NSEKE: "NASE", NSENG: "NGX", NZX: "NZE",
+        OMXCOP: "CPH", OMXHEX: "HEL", OMXICE: "ICE",
+        OMXRSE: "RSE", OMXSTO: "STO", OMXTSE: "TAL",
+        OMXVSE: "VSE", OTC: "OTC",
+        PSECZ: "PRA", PSE: "PSE", PSX: "PSX", QSE: "QSE",
         RUS: "MOEX",
-        // S
-        SAPSE: "SPSE",
-        SET: "BKK",
-        SGX: "SGX",
-        SIX: "SWX",
-        SSE: "SHA",
-        SWB: "BST",
-        SZSE: "SHE",
-        // T
-        TADAWUL: "TADAWUL",
-        TASE: "TLV",
-        TRADEGATE: "FRA",
-        TSX: "TSX",
-        TSXV: "TSXV",
-        TSE: "TYO",
-        TPEX: "TPEX",
-        TWSE: "TPE",
-        // U
-        UPCOM: "HNX",
-        // V
-        VIE: "VIE",
-        // X
-        XETR: "ETR",
-        // Z
-        ZSE: "ZSE",
+        SAPSE: "SPSE", SET: "BKK", SGX: "SGX", SIX: "SWX",
+        SSE: "SHA", SWB: "BST", SZSE: "SHE",
+        TADAWUL: "TADAWUL", TASE: "TLV", TRADEGATE: "FRA",
+        TSX: "TSX", TSXV: "TSXV", TSE: "TYO", TPEX: "TPEX", TWSE: "TPE",
+        UPCOM: "HNX", VIE: "VIE", XETR: "ETR", ZSE: "ZSE",
       };
 
       function toTitleCase(str) { return str.toLowerCase().replace(/\b\w/g, (c) => c.toUpperCase()); }
@@ -742,54 +530,28 @@ HTML_PAGE = r'''<!doctype html>
         const tv = String(exchangeCode).toUpperCase();
         const ex = saExchangeCode(exchangeCode).toLowerCase();
         let tk = String(ticker).toLowerCase();
-
         if (tv === "HKEX" && /^\d{1,3}$/.test(tk)) {
           tk = tk.padStart(4, "0");
         }
-
         const usExchanges = ["otc", "nasdaq", "nyse", "amex"];
         return usExchanges.includes(ex)
           ? `https://www.stockanalysis.com/stocks/${tk}`
           : `https://www.stockanalysis.com/quote/${ex}/${tk}`;
       }
-      function mapTvExchange(exchangeCode) {
-        return String(exchangeCode).toUpperCase();
-      }
-      function tvSymbol(exchangeCode, ticker) {
-        return `${mapTvExchange(exchangeCode)}-${String(ticker).toUpperCase()}`;
-      }
 
-      function buildPackageTargets(exchangeCode, ticker, isSemester) {
-        const tv = `https://www.tradingview.com/symbols/${tvSymbol(exchangeCode, ticker)}`;
-        const period = isSemester ? "FH" : "FQ";
+      function buildSAPackageTargets(exchangeCode, ticker, isSemester) {
+        const period = "quarterly";
+        const baseUrl = saBaseUrl(exchangeCode, ticker);
         return [
           { id: "pkg-history-py", name: "⏳ Historical Data — Python (yfinance quarterly / semiannual closes)", url: "local", local: true },
-          { id: "pkg-income-tv", name: "📑 Income Statement — TradingView", url: `${tv}/financials-income-statement/?statements-period=${period}&selected=total_revenue%2Cnet_revenue%2Cnet_income%2Cdiluted_shares_outstanding` },
-          { id: "pkg-balance-tv", name: "⚖️ Balance Sheet — TradingView", url: `${tv}/financials-balance-sheet/?statements-period=${period}&selected=total_equity` },
-          { id: "pkg-ratios-tv", name: "📊 Ratios — TradingView", url: `${tv}/financials-statistics-and-ratios/?statistics-period=${period}&selected=price_earnings%2Cprice_book%2Cnet_margin` },
-        ];
-      }
-
-      function buildTradingViewTargets(exchangeCode, ticker) {
-        const tvEx = mapTvExchange(exchangeCode);
-        const tk = String(ticker).toUpperCase();
-        const base = `https://www.tradingview.com/symbols/${tvEx}-${tk}`;
-        return [
-          { id: "overview", name: "🏢 Overview", url: `${base}/` },
-          { id: "history", name: "⏳ Historical Data", url: `${base}/?timeframe=120M` },
-          { id: "income", name: "📑 Income Statement", url: `${base}/financials-income-statement/?statements-period=FQ&selected=total_revenue%2Cnet_revenue%2Cnet_income%2Cdiluted_shares_outstanding` },
-          { id: "balance", name: "⚖️ Balance Sheet", url: `${base}/financials-balance-sheet/?statements-period=FQ&selected=total_equity` },
-          { id: "cash", name: "🔄 Cash Flow", url: `${base}/financials-cash-flow/?statements-period=FQ&selected=` },
-          { id: "stats", name: "📊 Financial Stats", url: `${base}/financials-statistics-and-ratios/?statistics-period=FQ&selected=price_earnings%2Cprice_book%2Cnet_margin` },
-          { id: "revenue", name: "💰 Revenue", url: `${base}/financials-revenue/` },
-          { id: "dividends", name: "💸 Dividends", url: `${base}/financials-dividends/` },
+          { id: "pkg-income-sa", name: "📑 Income Statement — StockAnalysis", url: `${baseUrl}/financials/income-statement/?p=${period}` },
+          { id: "pkg-balance-sa", name: "⚖️ Balance Sheet — StockAnalysis", url: `${baseUrl}/financials/balance-sheet/?p=${period}` },
+          { id: "pkg-ratios-sa", name: "📊 Ratios — StockAnalysis", url: `${baseUrl}/financials/ratios/?p=${period}` },
         ];
       }
 
       function buildStockAnalysisTargets(exchangeCode, ticker) {
-        const ex = String(exchangeCode).toLowerCase();
-        const tk = String(ticker).toLowerCase();
-        const baseUrl = saBaseUrl(ex, tk);
+        const baseUrl = saBaseUrl(exchangeCode, ticker);
         return [
           { id: "overview", name: "🏢 Overview", url: `${baseUrl}/company` },
           { id: "history", name: "⏳ Historical Data", url: `${baseUrl}/history/` },
@@ -829,15 +591,13 @@ HTML_PAGE = r'''<!doctype html>
         if (getSelectedSource().includes("package")) return;
         checkboxGrid.querySelectorAll('input[type="checkbox"]').forEach((cb) => (cb.checked = selectAll));
       }
-      
+
       function openHistoryTab(exchangeCode, ticker, initialFreq) {
         const suffix = YAHOO_SUFFIX_MAP[exchangeCode.toUpperCase()] || "";
         let baseTicker = ticker.toUpperCase();
-        
         if (exchangeCode.toUpperCase() === "HKEX") {
           baseTicker = baseTicker.replace(/^0+/, '') || '0';
         }
-        
         const symbol = baseTicker + suffix;
         const freq = (initialFreq === "semiannual") ? "semiannual" : "quarterly";
         window.open(`/history/${symbol}?freq=${freq}`, "_blank");
@@ -854,17 +614,17 @@ HTML_PAGE = r'''<!doctype html>
         }
         const exchangeCode = resolveExchangeCode(rawExchange);
         let targets = [];
-        
+
         if (source.includes("package")) {
           const isSemester = (source === "semester_package");
-          targets = buildPackageTargets(exchangeCode, ticker, isSemester);
+          targets = buildSAPackageTargets(exchangeCode, ticker, isSemester);
         } else {
           const selectedData = getSelectedDataPoints();
           if (selectedData.length === 0) {
             Swal.fire(getToastConfig("warning", "Select at least one tracking data configuration point!"));
             return;
           }
-          const allTargets = source === "stockanalysis" ? buildStockAnalysisTargets(exchangeCode, ticker) : buildTradingViewTargets(exchangeCode, ticker);
+          const allTargets = buildStockAnalysisTargets(exchangeCode, ticker);
           targets = allTargets.filter((t) => selectedData.includes(t.id));
         }
         Swal.fire(getToastConfig("success", `Opening ${targets.length} analysis tabs layout links window`));
@@ -931,18 +691,13 @@ HTML_PAGE = r'''<!doctype html>
       window.addEventListener("keydown", (e) => {
         const key = (e.key || "").toLowerCase();
         const hasModifier = e.ctrlKey || e.metaKey;
-        const isRefreshCombo =
-          (hasModifier && key === "r") ||
-          e.key === "F5" ||
-          key === "f5";
-
+        const isRefreshCombo = (hasModifier && key === "r") || e.key === "F5" || key === "f5";
         if (isRefreshCombo) {
           e.preventDefault();
           e.stopPropagation();
           Swal.fire(getToastConfig("info", "Page refresh shortcuts are disabled to keep your counter and workspace state stable."));
           return false;
         }
-
         if (e.key === "Enter") {
           const tag = (e.target.tagName || "").toUpperCase();
           if (tag === "TEXTAREA") return;
@@ -1119,19 +874,14 @@ HTML_PAGE = r'''<!doctype html>
             var cur = lines[i].trim();
             if (!TICKER_RE.test(cur)) continue;
             if (NOISE[cur]) continue;
-
             var j = i + 1;
             while (j < lines.length && !lines[j].trim()) j++;
             var next = j < lines.length ? lines[j].trim() : "";
-
             var k = j + 1;
             while (k < lines.length && !lines[k].trim()) k++;
             var after = k < lines.length ? lines[k].trim() : "";
-
-            var looksLikeTicker =
-              !isDataRow(next) && (/[a-z]/.test(next) || next === "D" || after === "D");
+            var looksLikeTicker = !isDataRow(next) && (/[a-z]/.test(next) || next === "D" || after === "D");
             if (!looksLikeTicker) continue;
-
             if (dedupeBox.checked) {
               if (seen[cur]) continue;
               seen[cur] = 1;
@@ -1144,45 +894,28 @@ HTML_PAGE = r'''<!doctype html>
         function render() {
           var raw = inputEl.value;
           var list = extractTickers(raw);
-
           list.sort();
           if (descBox.checked) list.reverse();
-
           outputEl.value = tabbedBox.checked ? list.join("\t") : list.join("\n");
-
-          if (!raw.trim()) {
-            statsEl.textContent = "";
-          } else if (list.length === 0) {
-            statsEl.textContent = "no tickers detected";
-          } else {
-            statsEl.textContent =
-              list.length + (list.length === 1 ? " ticker" : " tickers") +
-              " · " + (descBox.checked ? "Z → A" : "A → Z");
-          }
+          if (!raw.trim()) { statsEl.textContent = ""; }
+          else if (list.length === 0) { statsEl.textContent = "no tickers detected"; }
+          else { statsEl.textContent = list.length + (list.length === 1 ? " ticker" : " tickers") + " · " + (descBox.checked ? "Z → A" : "A → Z"); }
         }
 
         function copyToClipboard(text) {
           if (navigator.clipboard && window.isSecureContext) {
-            return navigator.clipboard.writeText(text)
-              .then(function () { return true; })
-              .catch(function () { return legacyCopy(text); });
+            return navigator.clipboard.writeText(text).then(function () { return true; }).catch(function () { return legacyCopy(text); });
           }
           return Promise.resolve(legacyCopy(text));
         }
         function legacyCopy(text) {
           var ta = document.createElement("textarea");
-          ta.value = text;
-          ta.setAttribute("readonly", "");
-          ta.style.position = "fixed";
-          ta.style.top = "-1000px";
-          ta.style.opacity = "0";
-          document.body.appendChild(ta);
-          ta.select();
-          ta.setSelectionRange(0, ta.value.length);
+          ta.value = text; ta.setAttribute("readonly", "");
+          ta.style.position = "fixed"; ta.style.top = "-1000px"; ta.style.opacity = "0";
+          document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, ta.value.length);
           var ok = false;
           try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
-          document.body.removeChild(ta);
-          return ok;
+          document.body.removeChild(ta); return ok;
         }
 
         inputEl.addEventListener("input", render);
@@ -1192,38 +925,21 @@ HTML_PAGE = r'''<!doctype html>
 
         copyBtn.addEventListener("click", function () {
           var text = outputEl.value.trim();
-          if (!text) {
-            Swal.fire(getToastConfig("warning", "Nothing to copy yet — paste some data first."));
-            return;
-          }
+          if (!text) { Swal.fire(getToastConfig("warning", "Nothing to copy yet — paste some data first.")); return; }
           copyToClipboard(text).then(function (ok) {
-            Swal.fire(getToastConfig(
-              ok ? "success" : "error",
-              ok ? "Tickers copied! Paste them straight into your spreadsheet."
-                 : "Copy failed — please select the output and copy manually."
-            ));
+            Swal.fire(getToastConfig(ok ? "success" : "error", ok ? "Tickers copied! Paste them straight into your spreadsheet." : "Copy failed — please select the output and copy manually."));
           });
         });
 
-        sampleBtn.addEventListener("click", function () {
-          inputEl.value = SAMPLE;
-          render();
-          inputEl.focus();
-        });
-
-        clearBtn.addEventListener("click", function () {
-          inputEl.value = "";
-          outputEl.value = "";
-          statsEl.textContent = "";
-          inputEl.focus();
-        });
-
+        sampleBtn.addEventListener("click", function () { inputEl.value = SAMPLE; render(); inputEl.focus(); });
+        clearBtn.addEventListener("click", function () { inputEl.value = ""; outputEl.value = ""; statsEl.textContent = ""; inputEl.focus(); });
         render();
       })();
     </script>
   </body>
 </html>'''
 
+# HISTORY_PAGE identical to app_tradingview.py — reuse it
 HISTORY_PAGE = r'''<!doctype html>
 <html lang="en">
   <head>
@@ -1233,203 +949,75 @@ HISTORY_PAGE = r'''<!doctype html>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-      :root{
-        --bg:#f1f5f9; --card:#ffffff; --text:#1e293b; --muted:#64748b;
-        --border:#e2e8f0; --primary:#2563eb; --stripe:#f8fafc; --hover:#eff6ff;
-      }
-      [data-theme="dark"]{
-        --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8;
-        --border:#334155; --primary:#3b82f6; --stripe:#243449; --hover:#2d3f5c;
-      }
+      :root{--bg:#f1f5f9; --card:#ffffff; --text:#1e293b; --muted:#64748b;
+        --border:#e2e8f0; --primary:#2563eb; --stripe:#f8fafc; --hover:#eff6ff;}
+      [data-theme="dark"]{--bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8;
+        --border:#334155; --primary:#3b82f6; --stripe:#243449; --hover:#2d3f5c;}
       *{box-sizing:border-box}
-      body{
-        font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+      body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
         margin:0; padding:22px 14px 44px; background:var(--bg); color:var(--text);
-        -webkit-text-size-adjust:100%;
-        transition: background-color 0.3s ease, color 0.3s ease;
-      }
-      .container{
-        max-width: 98%; margin: 0 auto; background:var(--card); border-radius:14px;
-        box-shadow:0 10px 25px -5px rgba(0,0,0,.15); overflow:hidden;
-        transition: background-color 0.3s ease;
-      }
-      
+        -webkit-text-size-adjust:100%; transition: background-color 0.3s ease, color 0.3s ease;}
+      .container{max-width: 98%; margin: 0 auto; background:var(--card); border-radius:14px;
+        box-shadow:0 10px 25px -5px rgba(0,0,0,.15); overflow:hidden;}
       .header{background:var(--primary); color:#fff; padding:22px 18px; text-align:center; position:relative;}
       .header h1{margin:0; font-size:clamp(1.05rem,3.4vw,1.5rem); font-weight:800; word-break:break-word}
       .header p{margin:6px 0 0; font-size:clamp(.74rem,2.4vw,.9rem); opacity:.88}
-
-      .theme-toggle {
-        position: absolute;
-        top: 15px;
-        right: 15px;
-        background: rgba(255, 255, 255, 0.2);
-        color: #fff;
-        border: 1px solid rgba(255, 255, 255, 0.3);
-        padding: 6px 12px;
-        border-radius: 20px;
-        font-size: 0.75rem;
-        font-weight: 600;
-        cursor: pointer;
-        transition: all 0.2s ease;
-        display: flex;
-        align-items: center;
-        gap: 4px;
-      }
-      .theme-toggle:hover { background: rgba(255, 255, 255, 0.3); }
-      @media (max-width: 600px) {
-        .theme-toggle { top: 10px; right: 10px; padding: 4px 8px; font-size: 0.7rem; }
-      }
-
-      .freq-switch{
-        display:inline-flex; gap:4px; margin-top:14px;
-        background:rgba(255,255,255,0.16); padding:4px; border-radius:10px;
-      }
-      .freq-btn{
-        padding:8px 16px; border:none; border-radius:8px; background:transparent;
+      .theme-toggle{position:absolute; top:15px; right:15px; background:rgba(255,255,255,0.2);
+        color:#fff; border:1px solid rgba(255,255,255,0.3); padding:6px 12px; border-radius:20px;
+        font-size:0.75rem; font-weight:600; cursor:pointer; transition:all 0.2s ease;
+        display:flex; align-items:center; gap:4px;}
+      .theme-toggle:hover { background:rgba(255,255,255,0.3); }
+      @media (max-width: 600px) { .theme-toggle { top:10px; right:10px; padding:4px 8px; font-size:0.7rem; } }
+      .freq-switch{display:inline-flex; gap:4px; margin-top:14px;
+        background:rgba(255,255,255,0.16); padding:4px; border-radius:10px;}
+      .freq-btn{padding:8px 16px; border:none; border-radius:8px; background:transparent;
         color:#fff; font-weight:700; font-size:0.82rem; cursor:pointer;
-        transition: all .2s ease; letter-spacing:.2px;
-      }
+        transition: all .2s ease; letter-spacing:.2px;}
       .freq-btn:hover{ background:rgba(255,255,255,0.18); }
       .freq-btn.active{ background:#fff; color:var(--primary); }
-
-      .table-wrap{
-        width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch;
-        padding-bottom: 16px;
-      }
-      .table-wrap::-webkit-scrollbar { height: 10px; }
-      .table-wrap::-webkit-scrollbar-track { background: var(--stripe); border-radius: 6px; margin: 0 15px; }
-      .table-wrap::-webkit-scrollbar-thumb { background: var(--border); border-radius: 6px; border: 2px solid var(--stripe); }
-      .table-wrap::-webkit-scrollbar-thumb:hover { background: var(--muted); }
-
+      .table-wrap{width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:16px;}
+      .table-wrap::-webkit-scrollbar { height:10px; }
+      .table-wrap::-webkit-scrollbar-track { background:var(--stripe); border-radius:6px; margin:0 15px; }
+      .table-wrap::-webkit-scrollbar-thumb { background:var(--border); border-radius:6px; border:2px solid var(--stripe); }
+      .table-wrap::-webkit-scrollbar-thumb:hover { background:var(--muted); }
       table{border-collapse:collapse; width:100%; min-width:max-content}
-      th,td{
-        padding: 8px 10px; border-bottom:1px solid var(--border); white-space:nowrap;
-        font-variant-numeric:tabular-nums;
-      }
-      thead th{
-        background:var(--stripe); color:var(--muted);
-        font-size: 0.75rem; font-weight:700; letter-spacing:.4px;
-        text-transform:uppercase; text-align:center;
-        position:sticky; top:0; z-index:3;
-      }
-      thead th:first-child{
-        left:0; z-index:4; text-align:left; padding-left: 12px;
-        font-size: 0.75rem; font-weight:700;
-        text-transform:uppercase; color:var(--muted); letter-spacing:.4px;
-      }
-      thead th.period-value{
-        text-align:center; color:var(--text);
-        font-size: 0.8rem; font-weight:600;
-        letter-spacing:0; text-transform:none;
-        font-variant-numeric: normal;
-      }
-      tbody td.latest-cell{
-        background: transparent;
-        font-weight: 600;
-        color: var(--text);
-      }
-      tbody th{
-        position:sticky; left:0; z-index:2; background:var(--stripe); text-align:left;
-        font-size: 0.75rem; font-weight:700; color:var(--muted);
-        text-transform:uppercase; letter-spacing:.4px;
-        border-right:1px solid var(--border); padding-left: 12px;
-      }
-      tbody td{
-        text-align:center; font-size: 0.85rem; font-weight:600; color:var(--text);
-      }
+      th,td{padding:8px 10px; border-bottom:1px solid var(--border); white-space:nowrap; font-variant-numeric:tabular-nums;}
+      thead th{background:var(--stripe); color:var(--muted); font-size:0.75rem; font-weight:700;
+        letter-spacing:.4px; text-transform:uppercase; text-align:center; position:sticky; top:0; z-index:3;}
+      thead th:first-child{left:0; z-index:4; text-align:left; padding-left:12px;}
+      thead th.period-value{text-align:center; color:var(--text); font-size:0.8rem; font-weight:600;
+        letter-spacing:0; text-transform:none; font-variant-numeric:normal;}
+      tbody td.latest-cell{background:transparent; font-weight:600; color:var(--text);}
+      tbody th{position:sticky; left:0; z-index:2; background:var(--stripe); text-align:left;
+        font-size:0.75rem; font-weight:700; color:var(--muted); text-transform:uppercase;
+        letter-spacing:.4px; border-right:1px solid var(--border); padding-left:12px;}
+      tbody td{text-align:center; font-size:0.85rem; font-weight:600; color:var(--text);}
       tbody tr:hover td{background:var(--hover)}
-      tbody tr:hover td.latest-cell{background: var(--hover);}
+      tbody tr:hover td.latest-cell{background:var(--hover);}
       tbody tr:last-child th, tbody tr:last-child td{border-bottom:none}
-
-      .copy-card{
-        padding: 18px;
-        border-top: 1px solid var(--border);
-        background: var(--card);
-        transition: background-color 0.3s ease;
-      }
-      .copy-row{
-        display: flex;
-        flex-wrap: wrap;
-        gap: 16px;
-        align-items: flex-end;
-        justify-content: center;
-      }
-      .copy-field{
-        display: flex;
-        flex-direction: column;
-        gap: 4px;
-      }
-      .copy-label{
-        font-size: 0.7rem;
-        font-weight: 700;
-        color: var(--muted);
-        text-transform: uppercase;
-        letter-spacing: .4px;
-      }
-      .copy-select, .copy-input {
-        padding: 8px 12px;
-        font-size: 0.95rem;
-        font-weight: 700;
-        color: var(--text);
-        background: var(--stripe);
-        border: 1px solid var(--border);
-        border-radius: 8px;
-        outline: none;
-        font-family: inherit;
-        font-variant-numeric: tabular-nums;
-        height: 38px;
-        transition: background-color 0.3s ease, border-color 0.3s ease, color 0.3s ease;
-      }
-      .copy-select {
-        cursor: pointer;
-        min-width: 120px;
-      }
-      .copy-input {
-        width: 80px;
-        text-align: center;
-      }
-      .copy-select:focus, .copy-input:focus { border-color: var(--primary); }
-
-      .copy-btn{
-        padding: 0 18px;
-        height: 38px;
-        background: var(--primary);
-        color: #fff;
-        border: none;
-        border-radius: 8px;
-        font-weight: 700;
-        font-size: 0.9rem;
-        cursor: pointer;
-        transition: background .2s;
-        white-space: nowrap;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-      }
-      .copy-btn:hover{ background: #1d4ed8; }
-      .copy-btn:disabled{ opacity: .9; cursor: default; }
-      .copy-hint{
-        margin: 10px 0 0;
-        font-size: 0.72rem;
-        color: var(--muted);
-        text-align: center;
-        line-height: 1.5;
-      }
-      @media (max-width: 600px){
-        .copy-row { flex-direction: column; align-items: stretch; }
-        .copy-select, .copy-input, .copy-btn { width: 100%; }
-      }
-
+      .copy-card{padding:18px; border-top:1px solid var(--border); background:var(--card);}
+      .copy-row{display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; justify-content:center;}
+      .copy-field{display:flex; flex-direction:column; gap:4px;}
+      .copy-label{font-size:0.7rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
+      .copy-select, .copy-input{padding:8px 12px; font-size:0.95rem; font-weight:700; color:var(--text);
+        background:var(--stripe); border:1px solid var(--border); border-radius:8px; outline:none;
+        font-family:inherit; font-variant-numeric:tabular-nums; height:38px;}
+      .copy-select{cursor:pointer; min-width:120px;}
+      .copy-input{width:80px; text-align:center;}
+      .copy-select:focus, .copy-input:focus { border-color:var(--primary); }
+      .copy-btn{padding:0 18px; height:38px; background:var(--primary); color:#fff; border:none;
+        border-radius:8px; font-weight:700; font-size:0.9rem; cursor:pointer; transition:background .2s;
+        white-space:nowrap; display:inline-flex; align-items:center; justify-content:center;}
+      .copy-btn:hover{ background:#1d4ed8; }
+      .copy-btn:disabled{ opacity:.9; cursor:default; }
+      .copy-hint{margin:10px 0 0; font-size:0.72rem; color:var(--muted); text-align:center; line-height:1.5;}
+      @media (max-width: 600px){.copy-row{flex-direction:column; align-items:stretch;}
+        .copy-select, .copy-input, .copy-btn{width:100%;}}
       .foot{padding:14px 18px; font-size:.75rem; color:var(--muted); text-align:center; line-height:1.6}
-      @media (max-width:600px){
-        body{padding:10px 5px 20px}
-        .header{padding:15px 10px}
-        th,td{padding:6px 8px}
-        thead th, thead th:first-child, tbody th{ font-size:0.65rem; }
-        thead th.period-value, tbody td{ font-size:0.75rem; }
-        .foot{font-size:.65rem; padding:10px}
-        .freq-btn{ padding:6px 12px; font-size:0.72rem; }
-      }
+      @media (max-width:600px){body{padding:10px 5px 20px} .header{padding:15px 10px}
+        th,td{padding:6px 8px} thead th, thead th:first-child, tbody th{font-size:0.65rem;}
+        thead th.period-value, tbody td{font-size:0.75rem;} .foot{font-size:.65rem; padding:10px}
+        .freq-btn{padding:6px 12px; font-size:0.72rem;}}
     </style>
   </head>
   <body>
@@ -1443,11 +1031,9 @@ HISTORY_PAGE = r'''<!doctype html>
           <button type="button" data-freq="semiannual" class="freq-btn">Semiannual</button>
         </div>
       </div>
-
       <div id="loadingState" style="text-align:center; padding: 40px; font-weight:bold;">
         Fetching historical data for {{ symbol }}...
       </div>
-
       <div id="content" style="display:none;">
         <div class="table-wrap">
           <table>
@@ -1455,7 +1041,6 @@ HISTORY_PAGE = r'''<!doctype html>
             <tbody id="tableBody"></tbody>
           </table>
         </div>
-
         <div class="copy-card">
           <div class="copy-row">
             <div class="copy-field">
@@ -1470,32 +1055,26 @@ HISTORY_PAGE = r'''<!doctype html>
           </div>
           <p class="copy-hint">Copies the <b>Current</b> close plus the selected period closes as a tab-separated row (values only, no labels). Press <b>Enter</b> to copy instantly.</p>
         </div>
-
         <p class="foot" id="footerNote"></p>
       </div>
     </div>
-
     <script>
       const symbol = "{{ symbol }}";
       const urlParams = new URLSearchParams(window.location.search);
       let freq = urlParams.get('freq') === 'semiannual' ? 'semiannual' : 'quarterly';
       let processedData = null;
-
       const themeToggleBtn = document.getElementById("themeToggleBtn");
       function setTheme(theme) {
         document.documentElement.setAttribute("data-theme", theme);
         localStorage.setItem("theme", theme);
         themeToggleBtn.innerText = theme === "dark" ? "☀️ Light Mode" : "🌙 Dark Mode";
       }
-      
       const savedTheme = localStorage.getItem("theme") || (window.matchMedia && window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light");
       setTheme(savedTheme);
-
       themeToggleBtn.addEventListener("click", () => {
         const currentTheme = document.documentElement.getAttribute("data-theme");
         setTheme(currentTheme === "dark" ? "light" : "dark");
       });
-
       function getPeriodLabel(dateStr, freq) {
         const dt = new Date(dateStr + "T00:00:00");
         const y = dt.getFullYear();
@@ -1506,7 +1085,6 @@ HISTORY_PAGE = r'''<!doctype html>
         if (m === 12) return `FY${y}`;
         return "";
       }
-
       function processPeriodData(timestamps, closes, freq) {
         let latest = null;
         for (let i = timestamps.length - 1; i >= 0; i--) {
@@ -1515,7 +1093,6 @@ HISTORY_PAGE = r'''<!doctype html>
           latest = { date: d.toISOString().split("T")[0], close: closes[i] };
           break;
         }
-
         const grouped = {};
         const order = [];
         for (let i = 0; i < timestamps.length; i++) {
@@ -1523,7 +1100,6 @@ HISTORY_PAGE = r'''<!doctype html>
           const d = new Date(timestamps[i] * 1000);
           const y = d.getFullYear();
           const m = d.getMonth();
-
           let key;
           if (freq === "semiannual") {
             if (m !== 5 && m !== 11) continue;
@@ -1532,7 +1108,6 @@ HISTORY_PAGE = r'''<!doctype html>
             if (m !== 2 && m !== 5 && m !== 8 && m !== 11) continue;
             key = `${y}-Q${Math.floor(m / 3) + 1}`;
           }
-
           if (!grouped[key]) order.push(key);
           grouped[key] = {
             date: d.toISOString().split("T")[0],
@@ -1540,24 +1115,18 @@ HISTORY_PAGE = r'''<!doctype html>
             period: getPeriodLabel(d.toISOString().split("T")[0], freq),
           };
         }
-
         const periodData = order.map((k) => grouped[k]);
         periodData.sort((a, b) => new Date(b.date) - new Date(a.date));
         return { latest, periodData };
       }
-
       async function loadData() {
         try {
-          // Add padding back for Yahoo Finance API if it's an HK ticker
           let apiSymbol = symbol;
           if (symbol.endsWith('.HK')) {
               let parts = symbol.split('.');
               let numPart = parts[0];
-              if (/^\d{1,4}$/.test(numPart)) {
-                  apiSymbol = numPart.padStart(4, '0') + '.HK';
-              }
+              if (/^\d{1,4}$/.test(numPart)) { apiSymbol = numPart.padStart(4, '0') + '.HK'; }
           }
-
           const response = await fetch(`/proxy?symbol=${encodeURIComponent(apiSymbol)}&range=10y&interval=1d`);
           if (!response.ok) throw new Error(`Server returned ${response.status}`);
           const data = await response.json();
@@ -1573,23 +1142,18 @@ HISTORY_PAGE = r'''<!doctype html>
           document.getElementById("loadingState").innerHTML = `<span style="color:#ef4444">Error: ${error.message}</span><br><small>Please check the ticker symbol.</small>`;
         }
       }
-
       function render() {
         if (!processedData || !processedData.periodData || processedData.periodData.length === 0) return;
-
         const { latest, periodData } = processedData;
         const fmtClose = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
         const latestDateCell = latest ? latest.date : "—";
         const latestCloseCell = latest ? fmtClose(latest.close) : "—";
         const latestHeader = latest ? latest.date : "—";
-
         document.getElementById("headerSub").innerText =
           `${freq === 'semiannual' ? 'Semiannual' : 'Quarter-End'} Closing Prices · Last 10 Years · Newest First · Includes Current Close`;
-
         document.querySelectorAll('[data-freq]').forEach(btn => {
           btn.classList.toggle('active', btn.getAttribute('data-freq') === freq);
         });
-
         document.getElementById("tableHead").innerHTML = `
           <tr>
             <th scope="col">Period</th>
@@ -1597,7 +1161,6 @@ HISTORY_PAGE = r'''<!doctype html>
             ${periodData.map((d) => `<th scope="col" class="period-value">${d.period}</th>`).join("")}
           </tr>
         `;
-
         document.getElementById("tableBody").innerHTML = `
           <tr>
             <th scope="row">Actual Date</th>
@@ -1610,18 +1173,14 @@ HISTORY_PAGE = r'''<!doctype html>
             ${periodData.map((d) => `<td>${fmtClose(d.close)}</td>`).join("")}
           </tr>
         `;
-
         document.getElementById("footerNote").innerHTML =
           `Swipe horizontally to view every period. All figures are period-end closing prices in the listing currency. The <b>Current</b> column shows the most recent trading day close (${latestHeader}).`;
-
         const selectEl = document.getElementById("copyLatestPeriod");
         selectEl.innerHTML = periodData.map((d, i) => `<option value="${i}">${d.period}</option>`).join("");
-
         const defaultN = Math.min(freq === "semiannual" ? 4 : 8, periodData.length);
         document.getElementById("copyN").value = defaultN;
         document.getElementById("copyN").max = periodData.length;
       }
-
       const copyBtnEl = document.querySelector(".copy-btn");
       function flashCopyBtn() {
         if (!copyBtnEl) return;
@@ -1635,40 +1194,32 @@ HISTORY_PAGE = r'''<!doctype html>
           copyBtnEl.dataset.busy = "0";
         }, 900);
       }
-
       function handleCopyData() {
         if (!processedData) return;
         const startIndex = parseInt(document.getElementById("copyLatestPeriod").value, 10);
         const nInput = document.getElementById("copyN");
         let n = parseInt(nInput.value, 10);
         if (isNaN(n) || n < 1) n = 1;
-
         const selectedPeriods = processedData.periodData.slice(startIndex, startIndex + n);
         nInput.value = selectedPeriods.length;
-
         const values = [];
         if (processedData.latest) values.push(processedData.latest.close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 }));
         for (let i = 0; i < selectedPeriods.length; i++) {
           values.push(selectedPeriods[i].close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 }));
         }
         const text = values.join("\t");
-
         const isDark = document.documentElement.getAttribute("data-theme") === "dark";
-        
         function toast(icon, title) {
           if (window.Swal) {
-            Swal.fire({
-              toast: true, position: "top", showConfirmButton: false, timer: 3000,
+            Swal.fire({ toast: true, position: "top", showConfirmButton: false, timer: 3000,
               timerProgressBar: true, background: isDark ? "#1e293b" : "#ffffff",
-              color: isDark ? "#f1f5f9" : "#1e293b", icon: icon, title: title
-            });
+              color: isDark ? "#f1f5f9" : "#1e293b", icon: icon, title: title });
           } else { alert(title); }
         }
         function onOk() { toast("success", "Successfully copied!"); flashCopyBtn(); }
         function onFail() { toast("error", "Copy failed — please select and copy manually."); }
-        
         if (navigator.clipboard && window.isSecureContext) {
-          navigator.clipboard.writeText(text).then(onOk).catch(function () { 
+          navigator.clipboard.writeText(text).then(onOk).catch(function () {
             var ta = document.createElement("textarea");
             ta.value = text; ta.style.position = "fixed"; ta.style.top = "-1000px";
             document.body.appendChild(ta); ta.select();
@@ -1683,17 +1234,15 @@ HISTORY_PAGE = r'''<!doctype html>
           document.body.removeChild(ta);
         }
       }
-
       document.addEventListener("keydown", function (e) {
         if (e.key !== "Enter" && e.keyCode !== 13) return;
-        if (e.isComposing) return; // abaikan Enter saat IME masih aktif
+        if (e.isComposing) return;
         const tag = (e.target.tagName || "").toUpperCase();
-        if (tag === "BUTTON" || tag === "TEXTAREA" || tag === "A") return; // biarkan default
+        if (tag === "BUTTON" || tag === "TEXTAREA" || tag === "A") return;
         if (!processedData || !processedData.periodData || processedData.periodData.length === 0) return;
         e.preventDefault();
         handleCopyData();
       }, { capture: true });
-
       document.querySelectorAll('[data-freq]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const f = btn.getAttribute('data-freq');
@@ -1705,7 +1254,6 @@ HISTORY_PAGE = r'''<!doctype html>
           loadData();
         });
       });
-
       loadData();
     </script>
   </body>
@@ -1719,7 +1267,6 @@ def index():
 
 @app.route("/history/<symbol>")
 def history(symbol):
-    # Strip leading zeros for display (e.g., 0051.HK -> 51.HK)
     display_symbol = symbol
     if symbol.upper().endswith('.HK'):
         parts = symbol.split('.')
@@ -1747,4 +1294,5 @@ def proxy():
 
 
 if __name__ == "__main__":
+    print(" * Open:  http://localhost:5000")
     app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, request_handler=QuietRequestHandler)

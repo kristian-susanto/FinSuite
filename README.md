@@ -312,7 +312,16 @@ pip install -r requirements.txt
 ### Step 4: Run the Application
 
 ```bash
-python app.py
+# TradingView
+python tradingview.py
+# StockAnalysis
+python stockanalysis.py
+```
+
+You should see:
+
+```text
+  Open:  http://localhost:5000
 ```
 
 Open your browser and navigate to `http://localhost:5000`.
