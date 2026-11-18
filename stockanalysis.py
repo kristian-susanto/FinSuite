@@ -1177,7 +1177,7 @@ HISTORY_PAGE = r'''<!doctype html>
           `Swipe horizontally to view every period. All figures are period-end closing prices in the listing currency. The <b>Current</b> column shows the most recent trading day close (${latestHeader}).`;
         const selectEl = document.getElementById("copyLatestPeriod");
         selectEl.innerHTML = periodData.map((d, i) => `<option value="${i}">${d.period}</option>`).join("");
-        const defaultN = Math.min(freq === "semiannual" ? 4 : 8, periodData.length);
+        const defaultN = Math.min(freq === "semiannual" ? 10 : 20, periodData.length);
         document.getElementById("copyN").value = defaultN;
         document.getElementById("copyN").max = periodData.length;
       }
@@ -1294,5 +1294,5 @@ def proxy():
 
 
 if __name__ == "__main__":
-    print(" * Open:  http://localhost:5000")
+    print(" * Running on http://127.0.0.1:5000")
     app.run(host="0.0.0.0", port=5000, debug=False, use_reloader=False, request_handler=QuietRequestHandler)
