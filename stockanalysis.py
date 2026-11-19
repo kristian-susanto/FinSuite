@@ -60,7 +60,6 @@ HTML_PAGE = r'''<!doctype html>
         border-bottom: 1px solid var(--border); padding-bottom: 0.5rem; }
       .stock-card { grid-column: span 7; }
       .side-panel { grid-column: span 5; display: flex; flex-direction: column; gap: 20px; }
-      .converter-card { grid-column: span 12; }
       .ticker-card { grid-column: span 12; }
       @media (max-width: 992px) { .stock-card, .side-panel { grid-column: span 12; } }
       .input-group { margin-bottom: 15px; }
@@ -125,22 +124,17 @@ HTML_PAGE = r'''<!doctype html>
         cursor: pointer; font-size: 12px; font-weight: 600; }
       .text-controls button:hover { background: var(--primary); color: #ffffff; }
       .text-actions { display: flex; gap: 10px; }
-      .legend { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
-      .chip { font-size: 12.5px; color: var(--primary); background: var(--radio-bg);
-        border: 1px solid var(--border); padding: 5px 10px; border-radius: 999px;
-        font-variant-numeric: tabular-nums; white-space: nowrap; }
-      .chip b { color: var(--primary); font-weight: 700; }
       .converter-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 18px; }
       @media (max-width: 820px) { .converter-grid { grid-template-columns: 1fr; } }
       .panel { display: flex; flex-direction: column; min-width: 0; }
       .panel-head { display: flex; justify-content: space-between; align-items: baseline; gap: 10px; margin-bottom: 8px; }
       .panel-head label { font-weight: 600; font-size: 14px; color: var(--text-secondary); margin-bottom: 0; }
       .panel-meta { font-size: 12px; color: var(--text-secondary); text-align: right; }
-      .converter-card textarea, .ticker-card textarea { width: 100%; min-height: min(40vh, 300px); padding: 14px 16px;
+      .ticker-card textarea { width: 100%; min-height: min(40vh, 300px); padding: 14px 16px;
         border: 2px solid var(--border); border-radius: 12px; background: var(--input-bg);
         color: var(--text-main); font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
         font-size: 14.5px; line-height: 1.7; resize: vertical; outline: none; }
-      #output, #tickerOutput { background: var(--output-bg); }
+      #tickerOutput { background: var(--output-bg); }
       .options { margin-top: 14px; display: flex; align-items: center; gap: 8px;
         font-size: 14px; color: var(--text-secondary); cursor: pointer; user-select: none; }
       .options input[type="checkbox"] { width: 17px; height: 17px; accent-color: var(--primary); cursor: pointer; }
@@ -238,36 +232,6 @@ HTML_PAGE = r'''<!doctype html>
         </section>
       </div>
 
-      <section class="card converter-card">
-        <h2>🔢 Financial Shorthand Converter</h2>
-        <div class="legend">
-          <span class="chip"><b>K</b> ×1,000</span>
-          <span class="chip"><b>M</b> ×1,000,000</span>
-          <span class="chip"><b>B</b> ×1,000,000,000</span>
-          <span class="chip"><b>T</b> ×1,000,000,000,000</span>
-        </div>
-        <div class="converter-grid">
-          <div class="panel">
-            <div class="panel-head"><label for="input">Input</label><span class="panel-meta">one value per line</span></div>
-            <textarea id="input" spellcheck="false" placeholder="9.26 T&#10;−2.05%&#10;9.70 T&#10;+4.25%"></textarea>
-          </div>
-          <div class="panel">
-            <div class="panel-head"><label for="output">Output</label><span class="panel-meta" id="stats"></span></div>
-            <textarea id="output" spellcheck="false" readonly wrap="off" placeholder="Converted values will appear here…"></textarea>
-          </div>
-        </div>
-        <label class="options">
-          <input type="checkbox" id="reverseOrder" checked />
-          Reverse order (Right-to-Left paste) — Adjust according to your sheet
-        </label>
-        <div class="actions">
-          <button id="copyBtn" class="btn-action btn-primary" type="button">Copy result</button>
-          <button id="sampleBtn" class="btn-action btn-ghost" type="button">Load sample</button>
-          <button id="clearBtn" class="btn-action btn-ghost" type="button">Clear</button>
-        </div>
-        <p class="foot">Output values are separated by tabs. Paste into a spreadsheet row. Commas as thousand separators, no decimal point. Percentage lines ignored.</p>
-      </section>
-
       <section class="card ticker-card">
         <h2>📋 Ticker Symbol Extractor</h2>
         <div class="converter-grid">
@@ -290,7 +254,7 @@ HTML_PAGE = r'''<!doctype html>
           <button id="tickerSampleBtn" class="btn-action btn-ghost" type="button">Load sample</button>
           <button id="tickerClearBtn" class="btn-action btn-ghost" type="button">Clear</button>
         </div>
-        <p class="foot">Paste output containing standalone ticker lines. The extractor detects standalone uppercase symbols (1–6 characters) and numeric ticker codes (1–6 digits, e.g. <b>2</b>, <b>6</b>, <b>1038</b>), skips quote rows and market markers such as <b>D</b>, sorts them in strict A → Z / 0 → 9 order, and formats them for clean spreadsheet pasting. Use <b>one per line</b> for a column, or <b>tab-separated</b> for a single row.</p>
+        <p class="foot">Paste output containing standalone ticker lines <b>or</b> tab-separated rows (ticker in first column). The extractor detects standalone uppercase symbols (1–6 characters) and numeric ticker codes (1–6 digits), skips quote rows and market markers such as <b>D</b>, sorts them in strict A → Z / 0 → 9 order, and formats them for clean spreadsheet pasting. Use <b>one per line</b> for a column, or <b>tab-separated</b> for a single row.</p>
       </section>
     </main>
 
@@ -730,90 +694,6 @@ HTML_PAGE = r'''<!doctype html>
 
       (function () {
         "use strict";
-        var inputEl = document.getElementById("input");
-        var outputEl = document.getElementById("output");
-        var statsEl = document.getElementById("stats");
-        var copyBtn = document.getElementById("copyBtn");
-        var sampleBtn = document.getElementById("sampleBtn");
-        var clearBtn = document.getElementById("clearBtn");
-        var reverseCheckbox = document.getElementById("reverseOrder");
-        var MULT = { K: 1000n, M: 1000000n, B: 1000000000n, T: 1000000000000n };
-        var INVISIBLE = /[\u200b-\u200f\u202a-\u202e\u2066-\u2069\ufeff]/g;
-        var SAMPLE = ["9.26 T","\u22122.05%","9.70 T","+4.25%","10.33 T","+9.01%","9.90 T","+1.90%","10.55 T","+13.93%","10.06 T","+3.75%","10.12 T","\u22122.02%","11.64 T","+17.60%"].join("\n");
-        function groupThousands(digits) { return digits.replace(/\B(?=(\d{3})+(?!\d))/g, ","); }
-        function convertLine(line) {
-          var s = String(line).replace(INVISIBLE, "").trim();
-          if (!s) return { skip: true };
-          if (s.indexOf("%") !== -1) return { skip: true };
-          s = s.replace(/\u2212/g, "-").replace(/[\u2013\u2014]/g, "-").replace(/\s+/g, "");
-          var m = s.match(/^([+-]?)(\d+(?:[.,]\d+)?)([KMBT])?$/i);
-          if (!m) return { invalid: true };
-          var numStr = m[2];
-          if (numStr.indexOf(",") !== -1 && numStr.indexOf(".") !== -1) { numStr = numStr.replace(/,/g, ""); }
-          else { numStr = numStr.replace(",", "."); }
-          var suffix = (m[3] || "").toUpperCase();
-          var mult = MULT[suffix] || 1n;
-          var isNeg = m[1] === "-";
-          var parts = numStr.split(".");
-          var intPart = parts[0];
-          var fracPart = parts[1] || "";
-          var digits = (intPart + fracPart).replace(/^0+(?=\d)/, "") || "0";
-          var scale = 10n ** BigInt(fracPart.length);
-          var value = (BigInt(digits) * mult) / scale;
-          var out = groupThousands(value.toString());
-          return { value: (isNeg && value !== 0n ? "-" : "") + out };
-        }
-        function render() {
-          var lines = inputEl.value.split(/\r?\n/);
-          var results = [];
-          var converted = 0, skipped = 0, invalid = 0;
-          for (var i = 0; i < lines.length; i++) {
-            var r = convertLine(lines[i]);
-            if (r.skip) { skipped++; continue; }
-            if (r.invalid) { invalid++; continue; }
-            results.push(r.value); converted++;
-          }
-          if (reverseCheckbox.checked) { results.reverse(); }
-          outputEl.value = results.join("\t");
-          if (!inputEl.value.trim()) { statsEl.textContent = ""; }
-          else {
-            var bits = [converted + " converted"];
-            if (skipped) bits.push(skipped + " skipped");
-            if (invalid) bits.push(invalid + " unrecognised");
-            statsEl.textContent = bits.join(" · ");
-          }
-        }
-        function copyTextToClipboard(text) {
-          if (navigator.clipboard && window.isSecureContext) {
-            return navigator.clipboard.writeText(text).then(function () { return true; }).catch(function () { return legacyCopy(text); });
-          }
-          return Promise.resolve(legacyCopy(text));
-        }
-        function legacyCopy(text) {
-          var ta = document.createElement("textarea");
-          ta.value = text; ta.setAttribute("readonly", "");
-          ta.style.position = "fixed"; ta.style.top = "-1000px"; ta.style.opacity = "0";
-          document.body.appendChild(ta); ta.select(); ta.setSelectionRange(0, ta.value.length);
-          var ok = false;
-          try { ok = document.execCommand("copy"); } catch (e) { ok = false; }
-          document.body.removeChild(ta); return ok;
-        }
-        inputEl.addEventListener("input", render);
-        reverseCheckbox.addEventListener("change", render);
-        copyBtn.addEventListener("click", function () {
-          var text = outputEl.value.trim();
-          if (!text) { Swal.fire(getToastConfig("warning", "Nothing to copy yet.")); return; }
-          copyTextToClipboard(text).then(function (ok) {
-            Swal.fire(getToastConfig(ok ? "success" : "error", ok ? "Copied! Paste it into your spreadsheet row." : "Copy failed — please select and copy manually."));
-          });
-        });
-        sampleBtn.addEventListener("click", function () { inputEl.value = SAMPLE; render(); inputEl.focus(); });
-        clearBtn.addEventListener("click", function () { inputEl.value = ""; outputEl.value = ""; statsEl.textContent = ""; inputEl.focus(); });
-        render();
-      })();
-
-      (function () {
-        "use strict";
         var inputEl = document.getElementById("tickerInput");
         var outputEl = document.getElementById("tickerOutput");
         var statsEl = document.getElementById("tickerStats");
@@ -839,39 +719,214 @@ HTML_PAGE = r'''<!doctype html>
           DR: 1, ADR: 1, GDR: 1, IDR: 1, CDR: 1, EDR: 1, DDR: 1
         };
 
-        var SAMPLE = [
-          "Symbol", "Mkt cap", "Price", "Chg %", "Vol", "Rel vol", "P/E", "EPS dil", "TTM", "EPS dil growth", "TTM YoY", "Div yield %", "TTM", "Sector", "Analyst rating",
-          "Symbol", "Mkt cap", "Price", "Chg %", "Vol", "Rel vol", "P/E", "EPS dil", "TTM", "EPS dil growth", "TTM YoY", "Div yield %", "TTM", "Sector", "Analyst rating",
-          "2", "2475", "Luxshare Precision Industry Co., Ltd. Class H", "D", "446.21 B HKD\t52.95 HKD\t-1.12%\t436.69 K\t0.19\t—\t—\t—\t0.00%\tElectronic technology", "Strong buy",
-          "6", "6951", "Chaozhou Three-Circle (Group) Co., Ltd. Class H", "D", "272.95 B HKD\t124.1 HKD\t-2.90%\t173.86 K\t0.11\t—\t—\t—\t0.00%\tElectronic technology", "Strong buy",
-          "", "2476", "Victory Giant Technology (HuiZhou) Co., Ltd. Class H", "D", "194.06 B HKD\t195.1 HKD\t-1.22%\t546.33 K\t0.16\t32.72\t5.96 HKD\t—\t0.00%\tElectronic technology", "Strong buy",
-          "3", "3228", "Shenzhen Kinwong Electronic Co., Ltd. Class H", "D", "121.15 B HKD\t74.40 HKD\t-3.19%\t522.7 K\t—\t54.25\t1.37 HKD\t-0.06%\t0.00%\tElectronic technology", "No rating",
-          "", "1989", "Delton Technology (Guangzhou) Inc. Class H", "D", "69.2 B HKD\t118.1 HKD\t-1.25%\t214.2 K\t0.06\t33.36\t3.54 HKD\t—\t0.62%\tElectronic technology", "Strong buy",
-          "", "2382", "Sunny Optical Technology (Group) Co., Ltd.", "D", "69.2 B HKD\t62.05 HKD\t-2.05%\t4.96 M\t0.81\t12.64\t4.91 HKD\t+51.68%\t1.90%\tElectronic technology", "Buy",
-          "", "6088", "FIT Hon Teng Limited", "D", "35.09 B HKD\t4.845 HKD\t-2.02%\t7.95 M\t0.35\t27.10\t0.18 HKD\t+6.56%\t0.00%\tElectronic technology", "Strong buy",
-          "", "1879", "Shanghai Xizhi Technology Co., Ltd Class H", "D", "26.5 B HKD\t280.0 HKD\t-0.64%\t33.41 K\t0.07\t—\t—\t—\t0.00%\tElectronic technology", "Strong buy",
-          "", "1478", "Q Technology (Group) Co. Ltd.", "D", "6.05 B HKD\t5.060 HKD\t0.00%\t2.68 M\t0.78\t3.75\t1.35 HKD\t+214.98%\t10.87%\tElectronic technology", "Buy",
-          "", "1300", "Trigiant Group Ltd.", "D", "5.06 B HKD\t2.625 HKD\t-8.22%\t9.04 M\t0.68\t14.26\t0.18 HKD\t—\t0.00%\tElectronic technology", "No rating",
-          "", "679", "Asia Tele-Net and Technology Corp Ltd", "D", "1.73 B HKD\t4.200 HKD\t-8.10%\t350 K\t0.54\t—\t-0.12 HKD\t-66.36%\t0.88%\tElectronic technology", "No rating",
-          "", "1037", "Maxnerva Technology Services Limited", "D", "444.89 M HKD\t0.620 HKD\t-1.59%\t1.36 M\t3.44\t—\t-0.00 HKD\t-313.64%\t0.00%\tElectronic technology", "No rating",
-          "", "567", "Jsmart Technologies Group Limited", "D", "435.59 M HKD\t0.270 HKD\t0.00%\t180 K\t0.41\t—\t-0.01 HKD\t-0.76%\t0.00%\tElectronic technology", "No rating",
-          "", "1679", "Risecomm Group Holdings Limited", "D", "374.18 M HKD\t1.320 HKD\t+0.76%\t92 K\t1.59\t—\t-0.13 HKD\t+78.80%\t0.00%\tElectronic technology", "No rating",
-          "", "8375", "Data Union Capital International Holdings Group Limited", "D", "317.95 M HKD\t0.800 HKD\t-13.04%\t50 K\t0.40\t—\t-0.05 HKD\t-8.21%\t0.00%\tElectronic technology", "No rating",
-          "", "1480", "Yan Tat Group Holdings Limited", "D", "240 M HKD\t1.000 HKD\t0.00%\t22 K\t0.24\t—\t-0.13 HKD\t-172.50%\t3.00%\tElectronic technology", "No rating",
-          "", "1120", "Arts Optical International Holdings Limited", "D", "231.76 M HKD\t0.540 HKD\t-10.00%\t302 K\t2.57\t9.33\t0.06 HKD\t—\t0.00%\tElectronic technology", "No rating",
-          "", "8070", "Keen Ocean International Holding Ltd.", "D", "215 M HKD\t1.075 HKD\t-2.27%\t20 K\t0.10\t3.90\t0.28 HKD\t+239.53%\t0.00%\tElectronic technology", "No rating",
-          "", "759", "CEC International Holdings Limited", "D", "156.55 M HKD\t0.227 HKD\t-3.40%\t46 K\t0.94\t—\t-0.06 HKD\t+10.64%\t0.00%\tElectronic technology", "No rating",
-          "", "889", "Datronix Holdings Limited", "D", "124.8 M HKD\t0.340 HKD\t-12.82%\t486 K\t1.77\t—\t-0.06 HKD\t+52.54%\t0.00%\tElectronic technology", "No rating",
-          "", "712", "Comtec Solar Systems Group Ltd.", "D", "59.36 M HKD\t0.056 HKD\t-6.67%\t420 K\t1.40\t—\t-0.04 HKD\t+5.56%\t0.00%\tElectronic technology", "No rating",
-          "", "8286", "Shanxi Changcheng Microlight Equipment Co. Ltd. Class H", "D", "43.86 M HKD\t0.142 HKD\t+22.41%\t270 K\t1.55\t—\t-0.11 HKD\t+10.05%\t0.00%\tElectronic technology", "No rating"
-        ].join("\n");
+        var SAMPLE = `General
+Filters 1
+Charts New
+Performance
+Analysts
+Dividends
+Financials
+Valuation
+Add View
+Edit View
+Symbol	Company Name	Market Cap
+	Stock Price 	% Change 	Industry 	Volume 	PE Ratio
+0390	China Railway Group Limited	115.37B	2.930	-0.34%	Engineering & Construction	17,834,000	3.86
+3996	China Energy Engineering Corporation Limited	101.81B	0.905	0.56%	Engineering & Construction	8,521,958	6.39
+1800	China Communications Construction Company Limited	97.15B	3.180	-0.31%	Engineering & Construction	7,365,043	4.49
+1186	China Railway Construction Corporation Limited	88.02B	3.940	-0.76%	Engineering & Construction	5,287,500	4.63
+1618	Metallurgical Corporation of China Ltd.	56.57B	1.295	-0.38%	Engineering & Construction	5,644,834	-
+3311	China State Construction International Holdings Limited	46.17B	8.74	0.98%	Engineering & Construction	2,114,000	5.22
+0659	CTF Services Limited	43.93B	8.75	-1.46%	Engineering & Construction	4,564,732	16.82
+2386	SINOPEC Engineering (Group) Co., Ltd.	25.27B	5.75	1.23%	Engineering & Construction	3,921,000	14.17
+9900	Hong Kong Zcloud Technology Construction Limited	16.44B	5.53	1.84%	Engineering & Construction	2,964,000	2,359.09
+3928	China Next-Gen Commerce and Supply Chain Limited	14.12B	28.46	-0.14%	Engineering & Construction	355,000	-
+2068	China Aluminum International Engineering Corporation Limited	12.52B	1.465	-0.34%	Engineering & Construction	4,900,000	38.18
+1783	Envision Greenwise Holdings Limited	10.47B	3.480	0.29%	Engineering & Construction	9,654,000	160.37
+1757	Global Chinese Business Club	6.78B	5.65	7.62%	Engineering & Construction	15,000	614.40
+1489	Wisewin Innotech Group Limited	3.17B	3.165	-10.47%	Engineering & Construction	1,090,000	-
+0368	Superland Group Holdings Limited	3.15B	3.940	-3.31%	Engineering & Construction	100,000	112.94
+2520	Shanxi Installation Group Co., Ltd.	3.01B	2.190	-0.23%	Engineering & Construction	64,000	18.64
+9929	Yaopop Holdings Limited	2.82B	1.410	-3.09%	Engineering & Construction	710,000	-
+0331	FSE Lifestyle Services Limited	2.42B	5.37	-0.37%	Engineering & Construction	11,000	5.90
+9913	Chi Kan Holdings Limited	2.12B	2.115	-1.63%	Engineering & Construction	36,000	-
+2295	Maxicity Holdings Limited	2.04B	5.10	0.79%	Engineering & Construction	15,000	147.43
+0240	Build King Holdings Limited	1.80B	1.450	-1.69%	Engineering & Construction	180,000	3.90
+1826	FDB Holdings Limited	1.56B	0.650	-9.09%	Engineering & Construction	5,105,000	-
+6063	Lotus Horizon Holdings Limited	1.53B	0.765	2.00%	Engineering & Construction	2,992,000	-
+1953	SFQ Global Limited	1.53B	1.035	-1.43%	Engineering & Construction	1,785,000	59.32
+2355	Baoye Group Company Limited	1.50B	2.880	1.23%	Engineering & Construction	20,000	16.78
+1656	ISDN Holdings Limited	1.47B	3.945	0.00%	Engineering & Construction	-	18.53
+2236	Wison Engineering Services Co. Ltd.	1.47B	0.360	0.00%	Engineering & Construction	22,000	13.98
+1283	Accel Group Holdings Limited	1.45B	1.770	1.43%	Engineering & Construction	300,000	32.48
+1793	Wecon Holdings Limited	1.38B	1.720	-12.24%	Engineering & Construction	2,556,000	144.30
+2515	Tianjin Construction Development Group Co., Ltd.	1.35B	4.350	-1.14%	Engineering & Construction	1,042,000	-
+1568	Sundart Holdings Limited	1.31B	0.600	-0.83%	Engineering & Construction	156,000	4.58
+0830	China State Construction Development Holdings Limited	1.27B	0.565	-4.24%	Engineering & Construction	104,000	-
+1977	Analogue Holdings Limited	1.25B	0.895	1.13%	Engineering & Construction	10,000	5.26
+1599	Beijing Urban Construction Design & Development Group Co., Limited	1.21B	0.900	0.56%	Engineering & Construction	114,000	2.22
+0687	Tysan Holdings Limited	1.06B	0.315	0.00%	Engineering & Construction	100,000	22.85
+9639	Wing Lee Development Construction Holdings Limited	1.05B	1.050	-7.08%	Engineering & Construction	355,000	56.99
+1372	China Carbon Neutral Development Group Limited	1.00B	1.025	-1.91%	Engineering & Construction	943,000	-
+6829	Dragon Rise Group Holdings Limited	920.16M	3.195	-0.16%	Engineering & Construction	452,000	58.78
+2789	Yuanda China Holdings Limited	906.48M	0.146	-2.01%	Engineering & Construction	62,000	2.55
+1903	JBB Builders International Limited	875.00M	1.750	-1.69%	Engineering & Construction	38,000	-
+2503	Zhongshen Jianye Holding Limited	817.02M	0.238	0.00%	Engineering & Construction	296,000	-
+0711	Asia Allied Infrastructure Holdings Limited	786.46M	0.430	0.00%	Engineering & Construction	190,000	6.03
+0610	Wai Kee Holdings Limited	713.81M	0.900	-0.55%	Engineering & Construction	60,000	0.93
+1500	In Construction Holdings Limited	697.20M	0.840	-1.18%	Engineering & Construction	7,045,000	10.75
+8321	Tai Kam Holdings Limited	683.91M	1.275	0.00%	Engineering & Construction	-	15.68
+1627	Able Engineering Holdings Limited	650.00M	0.325	1.56%	Engineering & Construction	20,000	2.26
+0611	China Nuclear Energy Technology Corporation Limited	620.43M	0.335	0.00%	Engineering & Construction	154,000	4.00
+1865	Pengo Holdings Group Limited	588.16M	0.410	-1.20%	Engineering & Construction	11,449,200	-
+6038	G & M Holdings Limited	576.73M	0.575	0.88%	Engineering & Construction	4,610,000	14.77
+1499	OKG Technology Holdings Limited	558.53M	0.104	-2.80%	Engineering & Construction	1,450,000	-
+6182	Twintek Investment Holdings Limited	548.00M	0.685	-9.87%	Engineering & Construction	38,288,000	-
+8188	GME Group Holdings Limited	481.45M	1.010	-0.49%	Engineering & Construction	684,000	6.74
+1746	Man Shun Group (Holdings) Limited	470.00M	0.470	-2.08%	Engineering & Construction	708,000	-
+2863	Golden Faith Group Holdings Limited	448.18M	0.650	-0.76%	Engineering & Construction	60,000	-
+9998	Kwan Yong Holdings Limited	428.00M	0.535	-6.14%	Engineering & Construction	1,880,000	3.57
+2663	KPa-BM Holdings Limited	423.27M	0.760	18.75%	Engineering & Construction	6,450,000	33.16
+0994	CT Vision (International) Holdings Limited	400.21M	0.310	-4.62%	Engineering & Construction	2,744,000	-
+1751	AI Energy Engineering Holdings Limited	389.33M	0.955	-0.52%	Engineering & Construction	218,000	-
+8431	Hao Bai International (Cayman) Limited	382.05M	1.615	-0.62%	Engineering & Construction	1,640,000	-
+2262	Steve Leung Design Group Limited	370.96M	0.325	0.00%	Engineering & Construction	-	31.25
+1556	Chinney Kin Wing Holdings Limited	355.50M	0.237	0.00%	Engineering & Construction	-	3.04
+1727	Hebei Construction Group Corporation Limited	350.52M	0.199	-0.50%	Engineering & Construction	75,500	-
+2017	Chanhigh Holdings Limited	346.36M	0.560	-3.45%	Engineering & Construction	36,000	54.80
+1416	CTR Holdings Limited	341.00M	0.220	-0.90%	Engineering & Construction	320,000	2.72
+1693	BGMC International Limited	321.11M	4.000	0.00%	Engineering & Construction	2,800	-
+1420	Chuan Holdings Limited	320.89M	0.239	0.00%	Engineering & Construction	12,000	1.47
+1637	SH Group (Holdings) Limited	318.00M	0.795	-0.63%	Engineering & Construction	76,000	53.08
+1667	Dimmi Life Holdings Limited	316.80M	0.330	-8.33%	Engineering & Construction	100,000	-
+0896	Hanison Construction Holdings Limited	300.46M	0.280	-1.75%	Engineering & Construction	270,000	-
+2163	Changsha Broad Homes Industrial Group Co., Ltd.	292.58M	0.600	-4.76%	Engineering & Construction	623,700	-
+3789	Royal Deluxe Holdings Limited	288.00M	0.240	0.00%	Engineering & Construction	100,000	19.71
+1630	Kin Shing Holdings Limited	285.00M	0.190	2.70%	Engineering & Construction	234,000	165.36
+1780	Rongzun International Holdings Group Limited	279.00M	0.450	2.27%	Engineering & Construction	777,500	-
+1742	HPC Holdings Limited	272.00M	0.170	-1.16%	Engineering & Construction	5,000	3.07
+2227	Solis Holdings Limited	270.10M	0.295	9.26%	Engineering & Construction	8,000	2.18
+1726	HKE Holdings Limited	268.31M	0.235	7.80%	Engineering & Construction	15,000	-
+8610	BBSB International Limited	265.00M	0.530	-0.93%	Engineering & Construction	8,000	14.99
+0784	AiLife International Group Limited	264.00M	0.330	0.00%	Engineering & Construction	480,000	-
+1615	AB Builders Group Limited	264.00M	0.440	-6.38%	Engineering & Construction	275,000	133.78
+8629	Guangdong Syntrust GK Testing and Certification Tech Service Center Co., Ltd.	261.25M	7.70	0.00%	Engineering & Construction	-	10.24
+1301	D&G Technology Holding Company Limited	260.20M	0.415	-2.35%	Engineering & Construction	38,000	-
+1662	Yee Hop Holdings Limited	257.50M	0.500	3.09%	Engineering & Construction	6,000	8.46
+2132	Landrich Holding Limited	251.20M	0.157	-5.42%	Engineering & Construction	80,000	19.88
+1240	CNQC International Holdings Limited	244.84M	0.149	-10.78%	Engineering & Construction	57,500	3.43
+8535	Vistar Holdings Limited	242.40M	0.202	-0.98%	Engineering & Construction	40,000	161.34
+1429	Skymission Group Holdings Limited	241.92M	0.126	-0.79%	Engineering & Construction	2,840,000	-
+1987	Beng Soon Machinery Holdings Limited	240.00M	0.240	0.00%	Engineering & Construction	40,000	42.18
+1552	BHCC Holding Limited	224.00M	0.280	-5.08%	Engineering & Construction	180,000	3.75
+1920	Junwea Group (China) Company Limited	223.29M	0.380	2.70%	Engineering & Construction	20,000	-
+1690	Lap Kei Engineering (Holdings) Limited	222.57M	0.154	4.05%	Engineering & Construction	90,000	10.86
+0983	SOCAM Development Limited	222.14M	0.595	6.25%	Engineering & Construction	134,000	10.57
+1582	CR Construction Group Holdings Limited	220.00M	0.440	0.00%	Engineering & Construction	17,500	16.74
+1447	SFK Construction Holdings Limited	212.00M	0.530	-1.85%	Engineering & Construction	214,000	9.01
+8601	Boltek Holdings Limited	208.00M	0.260	0.00%	Engineering & Construction	220,000	10.56
+1408	Macau E&M Holding Limited	197.50M	0.395	1.28%	Engineering & Construction	2,000	163.63
+0406	Yau Lee Holdings Limited	197.12M	0.450	0.00%	Engineering & Construction	-	-
+1683	Hope Life International Holdings Limited	195.96M	0.105	0.00%	Engineering & Construction	624,000	-
+1633	Sheung Yue Group Holdings Limited	195.15M	0.285	0.00%	Engineering & Construction	591,000	-
+1486	C Cheng Holdings Limited	194.58M	0.450	13.92%	Engineering & Construction	294,000	-
+8023	Kwong Man Kee Group Limited	194.17M	0.325	-1.52%	Engineering & Construction	150,000	14.05
+1547	IBI Group Holdings Limited	191.20M	0.239	0.00%	Engineering & Construction	-	14.10
+8316	SwiftLife Holdings Limited	189.72M	0.199	2.05%	Engineering & Construction	28,000	8.03
+1557	K. H. Group Holdings Limited	189.60M	0.395	0.00%	Engineering & Construction	68,000	1.37
+2193	Man King Holdings Limited	176.23M	0.420	1.20%	Engineering & Construction	100,000	22.12
+2266	Lai Si Enterprise Holding Limited	176.00M	0.440	-1.12%	Engineering & Construction	122,000	-
+6816	Prosper Construction Holdings Limited	176.00M	0.220	0.00%	Engineering & Construction	-	-
+8305	Sheng Tang Holdings Limited	168.69M	0.104	-7.96%	Engineering & Construction	2,220,000	-
+1870	Green Power Group Limited	152.58M	0.150	1.35%	Engineering & Construction	1,515,000	-
+1559	Kwan On Holdings Limited	151.50M	0.0550	0.00%	Engineering & Construction	10,000	-
+8040	Coolpoint Innonism Holding Limited	147.90M	0.435	6.10%	Engineering & Construction	10,000	-
+0385	Chinney Alliance Group Limited	143.37M	0.241	0.00%	Engineering & Construction	81,000	-
+1718	Wan Kei Group Holdings Limited	142.95M	0.475	13.10%	Engineering & Construction	311,000	-
+8411	K W Nelson Interior Design and Contracting Group Limited	142.56M	0.150	0.00%	Engineering & Construction	270,000	18.24
+2221	New Concepts Holdings Limited	134.14M	0.585	-0.85%	Engineering & Construction	16,000	-
+6080	Wing Chi Holdings Limited	133.32M	0.119	-0.83%	Engineering & Construction	240,000	-
+2340	ISP Holdings Limited	127.71M	0.167	1.21%	Engineering & Construction	104,000	-
+1343	Wei Yuan Holdings Limited	112.78M	0.106	3.92%	Engineering & Construction	205,000	2.32
+8125	RJVAN Holdings Limited	112.70M	0.520	0.00%	Engineering & Construction	32,000	-
+1722	Kin Pang Holdings Limited	108.90M	0.0990	-2.94%	Engineering & Construction	560,000	-
+1741	Shing Chi Holdings Limited	108.80M	0.136	0.00%	Engineering & Construction	-	-
+1253	China Green Broad Ecological Technology Company Limited	100.89M	0.167	-4.57%	Engineering & Construction	204,000	-
+8460	Basetrophy Group Holdings Limited	99.60M	0.375	1.35%	Engineering & Construction	800,000	-
+1855	ZONQING Environmental Limited	99.00M	0.120	-6.98%	Engineering & Construction	330,000	-
+1459	Jujiang Construction Group Co., Ltd.	98.67M	0.185	0.00%	Engineering & Construction	212,000	-
+1376	Raffles Interior Limited	96.00M	0.0960	3.23%	Engineering & Construction	544,000	-
+3822	Sam Woo Construction Group Limited	92.40M	1.100	0.00%	Engineering & Construction	4,000	1.62
+1546	Fortune Peace Development Group Limited	88.80M	0.111	-4.31%	Engineering & Construction	896,000	-
+8616	Sunray Engineering Group Limited	88.00M	0.0880	1.15%	Engineering & Construction	1,000,000	20.81
+8208	Radiance Global Group Holdings Limited	87.12M	0.110	0.00%	Engineering & Construction	276,000	-
+1472	Sang Hing Holdings (International) Limited	87.00M	0.0870	-2.25%	Engineering & Construction	20,000	-
+3878	Vicon Holdings Limited	82.01M	0.171	-1.72%	Engineering & Construction	148,000	18.21
+8275	China New Consumption Group Limited	81.60M	0.0850	-4.49%	Engineering & Construction	40,000	-
+0498	Blue River Holdings Limited	73.91M	0.0710	0.00%	Engineering & Construction	690,000	1.44
+0871	China Dredging Environment Protection Holdings Limited	72.19M	0.0480	-7.69%	Engineering & Construction	55,000	-
+8360	Basic House New Life Group Limited	72.05M	0.200	-3.85%	Engineering & Construction	24,000	-
+1707	Geotech Holdings Ltd.	70.56M	0.0420	5.00%	Engineering & Construction	112,000	-
+1413	FEG Holdings Corporation Limited	69.86M	0.213	-5.33%	Engineering & Construction	519,000	-
+1647	Grandshores Technology Group Limited	69.31M	0.0580	3.57%	Engineering & Construction	475,000	-
+8549	Golden Leaf International Group Limited	68.80M	0.172	-0.58%	Engineering & Construction	60,000	-
+1591	Shun Wo Group Holdings Limited	64.53M	0.121	0.00%	Engineering & Construction	210,000	-
+8516	Zhong Ying International Group Limited	63.88M	1.110	2.30%	Engineering & Construction	215,000	-
+8445	Noble Engineering Group Holdings Limited	63.01M	0.190	-7.32%	Engineering & Construction	20,000	-
+3728	Ching Lee Holdings Limited	58.75M	0.0580	-3.33%	Engineering & Construction	120,000	8.41
+3321	ZhongKe Group Holdings Limited	55.53M	0.715	1.42%	Engineering & Construction	800,000	-
+8373	Indigo Star Holdings Limited	46.20M	0.850	7.59%	Engineering & Construction	50,000	1.49
+8422	WT Group Holdings Limited	40.32M	0.112	-0.88%	Engineering & Construction	270,000	-
+1802	Wenye Group Holdings Limited	37.42M	0.0450	0.00%	Engineering & Construction	-	-
+8423	Chi Ho Development Holdings Limited	36.80M	0.0460	0.00%	Engineering & Construction	-	-
+8268	Smart City Development Holdings Limited	35.14M	0.122	-3.17%	Engineering & Construction	2,448,000	-
+8262	Super Strong Holdings Limited	34.16M	0.0370	0.00%	Engineering & Construction	-	-
+8366	Zhejiang United Investment Holdings Group Limited	33.12M	0.420	0.00%	Engineering & Construction	-	-
+2433	Zhongtian Construction (Hunan) Group Limited	32.26M	0.0560	5.66%	Engineering & Construction	882,000	-
+2110	Tian Cheng Holdings Limited	30.46M	0.705	3.68%	Engineering & Construction	53,000	-
+2113	Century Group International Holdings Limited	29.21M	0.605	1.68%	Engineering & Construction	202,500	-
+2195	Unity Enterprise Holdings Limited	28.42M	0.168	-5.08%	Engineering & Construction	154,500	-
+8217	Ju Fu Tang Biotech Holdings Co., Ltd	27.17M	0.0900	0.00%	Engineering & Construction	990,000	1.18
+8572	Glory Flame Holdings Limited	26.78M	0.590	0.00%	Engineering & Construction	-	-
+8619	NIU Holdings Limited	26.45M	0.0610	-3.17%	Engineering & Construction	1,039,200	-
+8128	Sino Energy Conservation International Limited	24.22M	0.0540	-10.00%	Engineering & Construction	479,800	12.37
+8059	Glory Flame Holdings Limited	22.74M	0.450	-10.89%	Engineering & Construction	10,000	-
+8356	Tsun Yip Holdings Limited	20.97M	0.280	1.82%	Engineering & Construction	2,000	2.31
+6189	Guangdong Adway Construction (Group) Holdings Company Limited	17.35M	0.0720	-10.00%	Engineering & Construction	4,499,500	-
+8532	Polyfair Holdings Limited	3.73M	0.0440	-6.38%	Engineering & Construction	528,000	-`.trim();
 
         function extractTickers(raw) {
           var lines = String(raw).replace(/\r/g, "").split("\n");
           var out = [];
           var seen = Object.create(null);
+
           for (var i = 0; i < lines.length; i++) {
-            var cur = lines[i].trim();
+            var line = lines[i];
+            var cur = line.trim();
+            if (!cur) continue;
+
+            // Mode 1: tab-separated row — ticker in first column
+            if (line.indexOf("\t") !== -1) {
+              var fields = line.split("\t");
+              var firstField = (fields[0] || "").trim();
+              if (!TICKER_RE.test(firstField)) continue;
+              if (NOISE[firstField]) continue;
+              var hasData = false;
+              for (var f = 1; f < fields.length; f++) {
+                if (/\d/.test(fields[f])) { hasData = true; break; }
+              }
+              var secondField = fields.length > 1 ? fields[1].trim() : "";
+              var isCompany = /[a-z]/.test(secondField) || secondField === "D";
+              if (!hasData || !isCompany) continue;
+              if (dedupeBox.checked) {
+                if (seen[firstField]) continue;
+                seen[firstField] = 1;
+              }
+              out.push(firstField);
+              continue;
+            }
+
+            // Mode 2: line-by-line — ticker on its own line
             if (!TICKER_RE.test(cur)) continue;
             if (NOISE[cur]) continue;
             var j = i + 1;
