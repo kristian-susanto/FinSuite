@@ -198,7 +198,7 @@ HTML_PAGE = r'''<!doctype html>
             <label class="radio-option"><input type="radio" name="source" value="tradingview" /> TradingView</label>
           </div>
           <p class="source-note">
-            <b>Package mode</b> opens a fixed bundle of <b>4 tabs</b>: Historical Data (Python yfinance), Income Statement, Balance Sheet, and Ratios.
+            <b>Package mode</b> opens a fixed bundle of <b>3 tabs</b>: Historical Data (Python yfinance), Income Statement, and Balance Sheet.
           </p>
         </div>
 
@@ -503,8 +503,7 @@ HTML_PAGE = r'''<!doctype html>
         return [
           { id: "pkg-history-py", name: "⏳ Historical Data — Python (yfinance quarterly / semiannual closes)", url: "local", local: true },
           { id: "pkg-income-tv", name: "📑 Income Statement — TradingView", url: `${tv}/financials-income-statement/?statements-period=${period}&selected=total_revenue%2Cnet_revenue%2Cnet_income%2Cdiluted_shares_outstanding` },
-          { id: "pkg-balance-tv", name: "⚖️ Balance Sheet — TradingView", url: `${tv}/financials-balance-sheet/?statements-period=${period}&selected=total_equity` },
-          { id: "pkg-ratios-tv", name: "📊 Ratios — TradingView", url: `${tv}/financials-statistics-and-ratios/?statistics-period=${period}&selected=price_earnings%2Cprice_book%2Cnet_margin` },
+          { id: "pkg-balance-tv", name: "⚖️ Balance Sheet — TradingView", url: `${tv}/financials-balance-sheet/?statements-period=${period}&selected=total_equity` }
         ];
       }
 
@@ -925,8 +924,9 @@ HISTORY_PAGE = r'''<!doctype html>
         margin:0; padding:22px 14px 44px; background:var(--bg); color:var(--text);
         -webkit-text-size-adjust:100%; transition: background-color 0.3s ease, color 0.3s ease;}
       .container{max-width: 98%; margin: 0 auto; background:var(--card); border-radius:14px;
-        box-shadow:0 10px 25px -5px rgba(0,0,0,.15); overflow:hidden;}
-      .header{background:var(--primary); color:#fff; padding:22px 18px; text-align:center; position:relative;}
+        box-shadow:0 10px 25px -5px rgba(0,0,0,.15); border:1px solid var(--border);}
+      .header{background:var(--primary); color:#fff; padding:22px 18px; text-align:center; position:relative;
+        border-radius: 13px 13px 0 0;}
       .header h1{margin:0; font-size:clamp(1.05rem,3.4vw,1.5rem); font-weight:800; word-break:break-word}
       .header p{margin:6px 0 0; font-size:clamp(.74rem,2.4vw,.9rem); opacity:.88}
       .theme-toggle{position:absolute; top:15px; right:15px; background:rgba(255,255,255,0.2);
@@ -963,7 +963,7 @@ HISTORY_PAGE = r'''<!doctype html>
       tbody tr:hover td.latest-cell{background:var(--hover);}
       tbody tr:last-child th, tbody tr:last-child td{border-bottom:none}
       tbody td.high-cell{cursor:help;}
-      .copy-card{padding:18px; border-top:1px solid var(--border); background:var(--card);}
+      .copy-card{padding:18px; border-top:1px solid var(--border); background:var(--card); border-radius: 0 0 13px 13px;}
       .copy-row{display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; justify-content:center;}
       .copy-field{display:flex; flex-direction:column; gap:4px;}
       .copy-label{font-size:0.7rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
@@ -1182,8 +1182,15 @@ HISTORY_PAGE = r'''<!doctype html>
         `;
         document.getElementById("footerNote").innerHTML =
           `Swipe horizontally to view every period. The <b>Close Price</b> row shows period-end closing prices in the listing currency. The <b>Highest Close</b> row shows the highest daily closing price recorded inside each period (hover a cell to see the exact date). The <b>Current</b> column always shows the most recent trading day close (${latestHeader}).`;
+        
         const selectEl = document.getElementById("copyLatestPeriod");
-        selectEl.innerHTML = periodData.map((d, i) => `<option value="${i}">${d.period}</option>`).join("");
+        // Reverse the options so the dropdown opens downwards chronologically
+        const reversedPeriods = [...periodData].reverse();
+        selectEl.innerHTML = reversedPeriods.map((d) => {
+            const originalIndex = periodData.indexOf(d);
+            return `<option value="${originalIndex}" ${originalIndex === 0 ? 'selected' : ''}>${d.period}</option>`;
+        }).join("");
+        
         const defaultN = Math.min(freq === "semiannual" ? 4 : 8, periodData.length);
         document.getElementById("copyN").value = defaultN;
         document.getElementById("copyN").max = periodData.length;

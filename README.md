@@ -49,7 +49,7 @@ Both files:
 ## Features
 
 - **Multi-tab stock researcher** — open up to 8 research tabs (Overview, Historical Data, Income Statement, Balance Sheet, Cash Flow, Ratios, Revenue, Dividends) with one click.
-- **Preset packages** — _Quarterly Package_ / _Semester Package_ open a fixed bundle of 4 tabs.
+- **Preset packages** — _Quarterly Package_ / _Semester Package_ open a fixed bundle of 3 tabs.
 - **Exchange directory** — 100+ exchanges with names, countries, and codes; autocomplete via `<datalist>`.
 - **Yahoo Finance historical data** — server-side proxy fetches 10 years of daily closes and pivots them into quarter-end / half-year tables.
 - **Interactive History page** — sortable periods, Close Price vs. Highest Close rows, one-click copy as tab-separated values (paste straight into Excel/Sheets).
@@ -130,7 +130,7 @@ Then open <http://127.0.0.1:5000> in your browser.
 2. **Ticker Symbol** — e.g. `0700`, `AAPL`, `7203`.
 3. **Select Data Points** — pick the tabs to open (checkbox grid). Use **All** / **None** for quick toggles.
 4. **Data Source Support** — choose a mode:
-   - **Quarterly Package** — opens 4 fixed tabs (Historical Data, Income Statement, Balance Sheet, Ratios).
+   - **Quarterly Package** — opens 3 fixed tabs (Historical Data, Income Statement, Balance Sheet).
    - **Semester Package** — same as above, but the History page defaults to **semiannual** granularity.
    - **StockAnalysis** _(stockanalysis.py)_ / **TradingView** _(tradingview.py)_ — opens whichever data points you checked, against the respective provider.
 5. Click **Open All Selected Tabs**.
@@ -253,7 +253,7 @@ Returns the raw JSON with the upstream status code, or `{"error": "..."}` with H
 - **Exchange mapping** — two lookup tables drive URL generation:
   - `YAHOO_SUFFIX_MAP` — maps exchange code → Yahoo Finance suffix (e.g. `HKEX → .HK`, `TSE → .T`).
   - `SA_EXCHANGE_MAP` — maps exchange code → StockAnalysis.com path segment (e.g. `HKEX → hkg`).
-- **URL builders** — `saBaseUrl()` assembles either a `/stocks/<ticker>` (US exchanges) or `/quote/<exchange>/<ticker>` URL. `buildSAPackageTargets()` and `buildStockAnalysisTargets()` return arrays of `{ id, name, url }` objects that the UI renders as both auto-opened tabs and fallback links.
+- **URL builders** — `saBaseUrl()` assembles either a `/stocks/<ticker>` (US exchanges) or `/quote/<exchange>/<ticker>` URL. `buildPackageTargets()` and `buildStockAnalysisTargets()` return arrays of `{ id, name, url }` objects that the UI renders as both auto-opened tabs and fallback links.
 - **Period bucketing** — `buildPeriodMeta(date, frequency)` returns `{ key, endMonth, label }`; `processPeriodData()` iterates the Yahoo timestamp/close arrays once, tracking the period-end close and the highest intra-period close.
 - **State persistence** — theme is stored in `localStorage` under the key `theme`.
 - **Refresh protection** — `Ctrl/Cmd+R` and `F5` are intercepted and suppressed (with a toast) to keep the counter and workspace state stable.
