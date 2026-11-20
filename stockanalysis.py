@@ -1275,7 +1275,7 @@ HISTORY_PAGE = r'''<!doctype html>
           `Swipe horizontally to view every period. The <b>Close Price</b> row shows period-end closing prices in the listing currency. The <b>Highest Close</b> row shows the highest daily closing price recorded inside each period (hover a cell to see the exact date). The <b>Current</b> column always shows the most recent trading day close (${latestHeader}).`;
         const selectEl = document.getElementById("copyLatestPeriod");
         selectEl.innerHTML = periodData.map((d, i) => `<option value="${i}">${d.period}</option>`).join("");
-        const defaultN = Math.min(freq === "semiannual" ? 4 : 8, periodData.length);
+        const defaultN = Math.min(freq === "semiannual" ? 10 : 20, periodData.length);
         document.getElementById("copyN").value = defaultN;
         document.getElementById("copyN").max = periodData.length;
       }
