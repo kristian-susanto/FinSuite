@@ -994,7 +994,6 @@ Symbol	Company Name	Market Cap
   </body>
 </html>'''
 
-# HISTORY_PAGE identical to app_tradingview.py — reuse it
 HISTORY_PAGE = r'''<!doctype html>
 <html lang="en">
   <head>
@@ -1004,10 +1003,14 @@ HISTORY_PAGE = r'''<!doctype html>
     <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>📊</text></svg>" />
     <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
     <style>
-      :root{--bg:#f1f5f9; --card:#ffffff; --text:#1e293b; --muted:#64748b;
-        --border:#e2e8f0; --primary:#2563eb; --stripe:#f8fafc; --hover:#eff6ff;}
-      [data-theme="dark"]{--bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8;
-        --border:#334155; --primary:#3b82f6; --stripe:#243449; --hover:#2d3f5c;}
+      :root{
+        --bg:#f1f5f9; --card:#ffffff; --text:#1e293b; --muted:#64748b;
+        --border:#e2e8f0; --primary:#2563eb; --stripe:#f8fafc; --hover:#eff6ff;
+      }
+      [data-theme="dark"]{
+        --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8;
+        --border:#334155; --primary:#3b82f6; --stripe:#243449; --hover:#2d3f5c;
+      }
       *{box-sizing:border-box}
       body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
         margin:0; padding:22px 14px 44px; background:var(--bg); color:var(--text);
@@ -1050,6 +1053,7 @@ HISTORY_PAGE = r'''<!doctype html>
       tbody tr:hover td{background:var(--hover)}
       tbody tr:hover td.latest-cell{background:var(--hover);}
       tbody tr:last-child th, tbody tr:last-child td{border-bottom:none}
+      tbody td.high-cell{cursor:help;}
       .copy-card{padding:18px; border-top:1px solid var(--border); background:var(--card);}
       .copy-row{display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; justify-content:center;}
       .copy-field{display:flex; flex-direction:column; gap:4px;}
@@ -1057,7 +1061,7 @@ HISTORY_PAGE = r'''<!doctype html>
       .copy-select, .copy-input{padding:8px 12px; font-size:0.95rem; font-weight:700; color:var(--text);
         background:var(--stripe); border:1px solid var(--border); border-radius:8px; outline:none;
         font-family:inherit; font-variant-numeric:tabular-nums; height:38px;}
-      .copy-select{cursor:pointer; min-width:120px;}
+      .copy-select{cursor:pointer; min-width:150px;}
       .copy-input{width:80px; text-align:center;}
       .copy-select:focus, .copy-input:focus { border-color:var(--primary); }
       .copy-btn{padding:0 18px; height:38px; background:var(--primary); color:#fff; border:none;
@@ -1106,9 +1110,16 @@ HISTORY_PAGE = r'''<!doctype html>
               <label class="copy-label" for="copyN">Periods to Copy (n)</label>
               <input type="number" id="copyN" class="copy-input" min="1" enterkeyhint="done" />
             </div>
+            <div class="copy-field">
+              <label class="copy-label" for="copyMode">Value</label>
+              <select id="copyMode" class="copy-select">
+                <option value="high" selected>Highest Close</option>
+                <option value="close">Close Price</option>
+              </select>
+            </div>
             <button type="button" class="copy-btn" onclick="handleCopyData()">Copy Price Data</button>
           </div>
-          <p class="copy-hint">Copies the <b>Current</b> close plus the selected period closes as a tab-separated row (values only, no labels). Press <b>Enter</b> to copy instantly.</p>
+          <p class="copy-hint">Copies the <b>Current</b> close plus the selected period values as a tab-separated row (values only, no labels). Use the <b>Value</b> selector to copy either <b>Highest Close</b> or <b>Close Price</b>. Press <b>Enter</b> to copy instantly.</p>
         </div>
         <p class="foot" id="footerNote"></p>
       </div>
@@ -1130,57 +1141,82 @@ HISTORY_PAGE = r'''<!doctype html>
         const currentTheme = document.documentElement.getAttribute("data-theme");
         setTheme(currentTheme === "dark" ? "light" : "dark");
       });
-      function getPeriodLabel(dateStr, freq) {
-        const dt = new Date(dateStr + "T00:00:00");
-        const y = dt.getFullYear();
-        const m = dt.getMonth() + 1;
-        if (m === 3) return `1Q${y}`;
-        if (m === 6) return `1H${y}`;
-        if (m === 9) return `9M${y}`;
-        if (m === 12) return `FY${y}`;
-        return "";
+
+      function toISO(d) { return d.toISOString().split("T")[0]; }
+
+      // Maps any trading day to its period bucket.
+      // Quarterly : 1Q (Jan–Mar), 1H (Apr–Jun), 9M (Jul–Sep), FY (Oct–Dec)
+      // Semiannual: 1H (Jan–Jun), FY (Jul–Dec)
+      function buildPeriodMeta(d, frequency) {
+        const y = d.getFullYear();
+        const m = d.getMonth();
+        if (frequency === "semiannual") {
+          const half = m < 6 ? 1 : 2;
+          return {
+            key: `${y}-H${half}`,
+            endMonth: half === 1 ? 5 : 11,
+            label: half === 1 ? `1H${y}` : `FY${y}`,
+          };
+        }
+        const q = Math.floor(m / 3) + 1;
+        const labels = { 1: `1Q${y}`, 2: `1H${y}`, 3: `9M${y}`, 4: `FY${y}` };
+        return { key: `${y}-Q${q}`, endMonth: q * 3 - 1, label: labels[q] };
       }
-      function processPeriodData(timestamps, closes, freq) {
+
+      function processPeriodData(timestamps, closes, frequency) {
         let latest = null;
         for (let i = timestamps.length - 1; i >= 0; i--) {
           if (closes[i] === null || closes[i] === undefined) continue;
           const d = new Date(timestamps[i] * 1000);
-          latest = { date: d.toISOString().split("T")[0], close: closes[i] };
+          latest = { date: toISO(d), close: closes[i] };
           break;
         }
         const grouped = {};
         const order = [];
         for (let i = 0; i < timestamps.length; i++) {
-          if (closes[i] === null || closes[i] === undefined) continue;
+          const c = closes[i];
+          if (c === null || c === undefined) continue;
           const d = new Date(timestamps[i] * 1000);
-          const y = d.getFullYear();
-          const m = d.getMonth();
-          let key;
-          if (freq === "semiannual") {
-            if (m !== 5 && m !== 11) continue;
-            key = `${y}-H${m === 5 ? 1 : 2}`;
-          } else {
-            if (m !== 2 && m !== 5 && m !== 8 && m !== 11) continue;
-            key = `${y}-Q${Math.floor(m / 3) + 1}`;
+          const iso = toISO(d);
+          const meta = buildPeriodMeta(d, frequency);
+          let g = grouped[meta.key];
+          if (!g) {
+            g = grouped[meta.key] = {
+              period: meta.label,
+              date: null,
+              close: null,
+              high: null,
+              highDate: null,
+            };
+            order.push(meta.key);
           }
-          if (!grouped[key]) order.push(key);
-          grouped[key] = {
-            date: d.toISOString().split("T")[0],
-            close: closes[i],
-            period: getPeriodLabel(d.toISOString().split("T")[0], freq),
-          };
+          // Highest close recorded inside the period
+          if (g.high === null || c > g.high) {
+            g.high = c;
+            g.highDate = iso;
+          }
+          // Period-end close: last trading day of the closing month
+          if (d.getMonth() === meta.endMonth && (g.date === null || iso > g.date)) {
+            g.date = iso;
+            g.close = c;
+          }
         }
-        const periodData = order.map((k) => grouped[k]);
-        periodData.sort((a, b) => new Date(b.date) - new Date(a.date));
+        const periodData = order
+          .map((k) => grouped[k])
+          .filter((p) => p.close !== null && p.date !== null);
+        periodData.sort((a, b) => (a.date < b.date ? 1 : a.date > b.date ? -1 : 0));
         return { latest, periodData };
       }
+
       async function loadData() {
         try {
           let apiSymbol = symbol;
           if (symbol.endsWith('.HK')) {
               let parts = symbol.split('.');
               let numPart = parts[0];
-              if (/^\d{1,4}$/.test(numPart)) { apiSymbol = numPart.padStart(4, '0') + '.HK'; }
+              if (/^\d{1,4}$/.test(numPart)) {
+                  apiSymbol = numPart.padStart(4, '0') + '.HK';
+              }
           }
           const response = await fetch(`/proxy?symbol=${encodeURIComponent(apiSymbol)}&range=10y&interval=1d`);
           if (!response.ok) throw new Error(`Server returned ${response.status}`);
@@ -1197,15 +1233,17 @@ HISTORY_PAGE = r'''<!doctype html>
           document.getElementById("loadingState").innerHTML = `<span style="color:#ef4444">Error: ${error.message}</span><br><small>Please check the ticker symbol.</small>`;
         }
       }
+
       function render() {
         if (!processedData || !processedData.periodData || processedData.periodData.length === 0) return;
         const { latest, periodData } = processedData;
         const fmtClose = (v) => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 });
+        const fmtOrDash = (v) => (v === null || v === undefined) ? "—" : fmtClose(v);
         const latestDateCell = latest ? latest.date : "—";
         const latestCloseCell = latest ? fmtClose(latest.close) : "—";
         const latestHeader = latest ? latest.date : "—";
         document.getElementById("headerSub").innerText =
-          `${freq === 'semiannual' ? 'Semiannual' : 'Quarter-End'} Closing Prices · Last 10 Years · Newest First · Includes Current Close`;
+          `${freq === 'semiannual' ? 'Semiannual' : 'Quarter-End'} Closing Prices · Last 10 Years · Newest First · Includes Current Close & Period Highs`;
         document.querySelectorAll('[data-freq]').forEach(btn => {
           btn.classList.toggle('active', btn.getAttribute('data-freq') === freq);
         });
@@ -1227,15 +1265,21 @@ HISTORY_PAGE = r'''<!doctype html>
             <td class="latest-cell">${latestCloseCell}</td>
             ${periodData.map((d) => `<td>${fmtClose(d.close)}</td>`).join("")}
           </tr>
+          <tr>
+            <th scope="row">Highest Close</th>
+            <td class="latest-cell">${latestCloseCell}</td>
+            ${periodData.map((d) => `<td class="high-cell" title="Highest close on ${d.highDate || "—"}">${fmtOrDash(d.high)}</td>`).join("")}
+          </tr>
         `;
         document.getElementById("footerNote").innerHTML =
-          `Swipe horizontally to view every period. All figures are period-end closing prices in the listing currency. The <b>Current</b> column shows the most recent trading day close (${latestHeader}).`;
+          `Swipe horizontally to view every period. The <b>Close Price</b> row shows period-end closing prices in the listing currency. The <b>Highest Close</b> row shows the highest daily closing price recorded inside each period (hover a cell to see the exact date). The <b>Current</b> column always shows the most recent trading day close (${latestHeader}).`;
         const selectEl = document.getElementById("copyLatestPeriod");
         selectEl.innerHTML = periodData.map((d, i) => `<option value="${i}">${d.period}</option>`).join("");
-        const defaultN = Math.min(freq === "semiannual" ? 10 : 20, periodData.length);
+        const defaultN = Math.min(freq === "semiannual" ? 4 : 8, periodData.length);
         document.getElementById("copyN").value = defaultN;
         document.getElementById("copyN").max = periodData.length;
       }
+
       const copyBtnEl = document.querySelector(".copy-btn");
       function flashCopyBtn() {
         if (!copyBtnEl) return;
@@ -1249,18 +1293,21 @@ HISTORY_PAGE = r'''<!doctype html>
           copyBtnEl.dataset.busy = "0";
         }, 900);
       }
+
       function handleCopyData() {
         if (!processedData) return;
         const startIndex = parseInt(document.getElementById("copyLatestPeriod").value, 10);
         const nInput = document.getElementById("copyN");
         let n = parseInt(nInput.value, 10);
         if (isNaN(n) || n < 1) n = 1;
+        const mode = document.getElementById("copyMode").value;
+        const pick = (p) => (mode === "high" && p.high !== null && p.high !== undefined) ? p.high : p.close;
         const selectedPeriods = processedData.periodData.slice(startIndex, startIndex + n);
         nInput.value = selectedPeriods.length;
         const values = [];
         if (processedData.latest) values.push(processedData.latest.close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 }));
         for (let i = 0; i < selectedPeriods.length; i++) {
-          values.push(selectedPeriods[i].close.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 }));
+          values.push(pick(selectedPeriods[i]).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 5 }));
         }
         const text = values.join("\t");
         const isDark = document.documentElement.getAttribute("data-theme") === "dark";
@@ -1289,6 +1336,7 @@ HISTORY_PAGE = r'''<!doctype html>
           document.body.removeChild(ta);
         }
       }
+
       document.addEventListener("keydown", function (e) {
         if (e.key !== "Enter" && e.keyCode !== 13) return;
         if (e.isComposing) return;
@@ -1298,6 +1346,7 @@ HISTORY_PAGE = r'''<!doctype html>
         e.preventDefault();
         handleCopyData();
       }, { capture: true });
+
       document.querySelectorAll('[data-freq]').forEach(btn => {
         btn.addEventListener('click', (e) => {
           const f = btn.getAttribute('data-freq');
@@ -1309,6 +1358,7 @@ HISTORY_PAGE = r'''<!doctype html>
           loadData();
         });
       });
+
       loadData();
     </script>
   </body>
