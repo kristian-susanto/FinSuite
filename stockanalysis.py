@@ -1015,8 +1015,8 @@ HISTORY_PAGE = r'''<!doctype html>
         margin:0; padding:22px 14px 44px; background:var(--bg); color:var(--text);
         -webkit-text-size-adjust:100%; transition: background-color 0.3s ease, color 0.3s ease;}
       .container{max-width: 98%; margin: 0 auto; background:var(--card); border-radius:14px;
-        box-shadow:0 10px 25px -5px rgba(0,0,0,.15); overflow:hidden;}
-      .header{background:var(--primary); color:#fff; padding:22px 18px; text-align:center; position:relative;}
+        box-shadow:0 10px 25px -5px rgba(0,0,0,.15);}
+      .header{background:var(--primary); color:#fff; padding:22px 18px; text-align:center; position:relative; border-radius:14px 14px 0 0;}
       .header h1{margin:0; font-size:clamp(1.05rem,3.4vw,1.5rem); font-weight:800; word-break:break-word}
       .header p{margin:6px 0 0; font-size:clamp(.74rem,2.4vw,.9rem); opacity:.88}
       .theme-toggle{position:absolute; top:15px; right:15px; background:rgba(255,255,255,0.2);
@@ -1063,6 +1063,65 @@ HISTORY_PAGE = r'''<!doctype html>
       .copy-select{cursor:pointer; min-width:150px;}
       .copy-input{width:80px; text-align:center;}
       .copy-select:focus, .copy-input:focus { border-color:var(--primary); }
+
+      /* Custom Dropdown CSS */
+      .custom-select-wrapper {
+        position: relative;
+        min-width: 150px;
+        height: 38px;
+      }
+      .custom-select-trigger {
+        padding: 8px 12px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text);
+        background: var(--stripe);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        font-family: inherit;
+        font-variant-numeric: tabular-nums;
+        height: 100%;
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        cursor: pointer;
+        user-select: none;
+      }
+      .custom-select-trigger:focus, .custom-select-trigger.open {
+        border-color: var(--primary);
+        outline: none;
+      }
+      .custom-select-options {
+        display: none;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        width: 100%;
+        max-height: 200px;
+        overflow-y: auto;
+        background: var(--stripe);
+        border: 1px solid var(--border);
+        border-radius: 8px;
+        margin-top: 4px;
+        box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        z-index: 1000;
+      }
+      .custom-select-options.open {
+        display: block;
+      }
+      .custom-select-option {
+        padding: 8px 12px;
+        font-size: 0.95rem;
+        font-weight: 700;
+        color: var(--text);
+        cursor: pointer;
+        font-variant-numeric: tabular-nums;
+      }
+      .custom-select-option:hover {
+        background: var(--hover);
+        color: var(--primary);
+      }
+
       .copy-btn{padding:0 18px; height:38px; background:var(--primary); color:#fff; border:none;
         border-radius:8px; font-weight:700; font-size:0.9rem; cursor:pointer; transition:background .2s;
         white-space:nowrap; display:inline-flex; align-items:center; justify-content:center;}
@@ -1070,8 +1129,8 @@ HISTORY_PAGE = r'''<!doctype html>
       .copy-btn:disabled{ opacity:.9; cursor:default; }
       .copy-hint{margin:10px 0 0; font-size:0.72rem; color:var(--muted); text-align:center; line-height:1.5;}
       @media (max-width: 600px){.copy-row{flex-direction:column; align-items:stretch;}
-        .copy-select, .copy-input, .copy-btn{width:100%;}}
-      .foot{padding:14px 18px; font-size:.75rem; color:var(--muted); text-align:center; line-height:1.6}
+        .copy-select, .copy-input, .copy-btn, .custom-select-wrapper{width:100%;}}
+      .foot{padding:14px 18px; font-size:.75rem; color:var(--muted); text-align:center; line-height:1.6; border-radius:0 0 14px 14px;}
       @media (max-width:600px){body{padding:10px 5px 20px} .header{padding:15px 10px}
         th,td{padding:6px 8px} thead th, thead th:first-child, tbody th{font-size:0.65rem;}
         thead th.period-value, tbody td{font-size:0.75rem;} .foot{font-size:.65rem; padding:10px}
@@ -1102,8 +1161,14 @@ HISTORY_PAGE = r'''<!doctype html>
         <div class="copy-card">
           <div class="copy-row">
             <div class="copy-field">
-              <label class="copy-label" for="copyLatestPeriod">Latest Period</label>
-              <select id="copyLatestPeriod" class="copy-select"></select>
+              <label class="copy-label">Latest Period</label>
+              <div class="custom-select-wrapper" id="customPeriodSelect">
+                <div class="custom-select-trigger" id="periodTrigger" tabindex="0">
+                  <span id="periodLabel">Loading...</span>
+                  <span style="font-size: 10px;">▼</span>
+                </div>
+                <div class="custom-select-options" id="periodOptions"></div>
+              </div>
             </div>
             <div class="copy-field">
               <label class="copy-label" for="copyN">Periods to Copy (n)</label>
@@ -1129,6 +1194,7 @@ HISTORY_PAGE = r'''<!doctype html>
       let freq = urlParams.get('freq') === 'semiannual' ? 'semiannual' : 'quarterly';
       let processedData = null;
       const themeToggleBtn = document.getElementById("themeToggleBtn");
+
       function setTheme(theme) {
         document.documentElement.setAttribute("data-theme", theme);
         localStorage.setItem("theme", theme);
@@ -1241,11 +1307,14 @@ HISTORY_PAGE = r'''<!doctype html>
         const latestDateCell = latest ? latest.date : "—";
         const latestCloseCell = latest ? fmtClose(latest.close) : "—";
         const latestHeader = latest ? latest.date : "—";
+
         document.getElementById("headerSub").innerText =
           `${freq === 'semiannual' ? 'Semiannual' : 'Quarter-End'} Closing Prices · Last 10 Years · Newest First · Includes Current Close & Period Highs`;
+
         document.querySelectorAll('[data-freq]').forEach(btn => {
           btn.classList.toggle('active', btn.getAttribute('data-freq') === freq);
         });
+
         document.getElementById("tableHead").innerHTML = `
           <tr>
             <th scope="col">Period</th>
@@ -1272,12 +1341,51 @@ HISTORY_PAGE = r'''<!doctype html>
         `;
         document.getElementById("footerNote").innerHTML =
           `Swipe horizontally to view every period. The <b>Close Price</b> row shows period-end closing prices in the listing currency. The <b>Highest Close</b> row shows the highest daily closing price recorded inside each period (hover a cell to see the exact date). The <b>Current</b> column always shows the most recent trading day close (${latestHeader}).`;
-        const selectEl = document.getElementById("copyLatestPeriod");
-        selectEl.innerHTML = periodData.map((d, i) => `<option value="${i}">${d.period}</option>`).join("");
+        
+        const periodOptionsEl = document.getElementById("periodOptions");
+        const periodLabelEl = document.getElementById("periodLabel");
+        periodOptionsEl.innerHTML = periodData.map((d, i) => `<div class="custom-select-option" data-value="${i}">${d.period}</div>`).join("");
+        periodLabelEl.textContent = periodData[0].period;
+        window.selectedPeriodIndex = 0;
+
+        periodOptionsEl.querySelectorAll('.custom-select-option').forEach(opt => {
+            opt.addEventListener('click', function() {
+                window.selectedPeriodIndex = parseInt(this.getAttribute('data-value'), 10);
+                periodLabelEl.textContent = this.textContent;
+                periodOptionsEl.classList.remove('open');
+                document.getElementById('periodTrigger').classList.remove('open');
+            });
+        });
+
         const defaultN = Math.min(freq === "semiannual" ? 10 : 20, periodData.length);
         document.getElementById("copyN").value = defaultN;
         document.getElementById("copyN").max = periodData.length;
       }
+
+      // Custom dropdown event listeners
+      const periodTrigger = document.getElementById('periodTrigger');
+      const periodOptionsEl = document.getElementById('periodOptions');
+      
+      periodTrigger.addEventListener('click', function(e) {
+        e.stopPropagation();
+        const isOpen = periodOptionsEl.classList.contains('open');
+        periodOptionsEl.classList.toggle('open');
+        periodTrigger.classList.toggle('open');
+      });
+
+      periodTrigger.addEventListener('keydown', function(e) {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          periodTrigger.click();
+        }
+      });
+
+      document.addEventListener('click', function(e) {
+        if (!document.getElementById('customPeriodSelect').contains(e.target)) {
+          periodOptionsEl.classList.remove('open');
+          periodTrigger.classList.remove('open');
+        }
+      });
 
       const copyBtnEl = document.querySelector(".copy-btn");
       function flashCopyBtn() {
@@ -1295,7 +1403,7 @@ HISTORY_PAGE = r'''<!doctype html>
 
       function handleCopyData() {
         if (!processedData) return;
-        const startIndex = parseInt(document.getElementById("copyLatestPeriod").value, 10);
+        const startIndex = window.selectedPeriodIndex || 0;
         const nInput = document.getElementById("copyN");
         let n = parseInt(nInput.value, 10);
         if (isNaN(n) || n < 1) n = 1;
