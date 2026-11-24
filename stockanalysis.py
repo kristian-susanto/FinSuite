@@ -1005,10 +1005,12 @@ HISTORY_PAGE = r'''<!doctype html>
       :root{
         --bg:#f1f5f9; --card:#ffffff; --text:#1e293b; --muted:#64748b;
         --border:#e2e8f0; --primary:#2563eb; --stripe:#f8fafc; --hover:#eff6ff;
+        --primary-hover:#1d4ed8;
       }
       [data-theme="dark"]{
         --bg:#0f172a; --card:#1e293b; --text:#f1f5f9; --muted:#94a3b8;
         --border:#334155; --primary:#3b82f6; --stripe:#243449; --hover:#2d3f5c;
+        --primary-hover:#2563eb;
       }
       *{box-sizing:border-box}
       body{font-family:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
@@ -1032,6 +1034,58 @@ HISTORY_PAGE = r'''<!doctype html>
         transition: all .2s ease; letter-spacing:.2px;}
       .freq-btn:hover{ background:rgba(255,255,255,0.18); }
       .freq-btn.active{ background:#fff; color:var(--primary); }
+
+      /* Copy Card - inside header, below the title */
+      .copy-card{
+        margin: 20px auto 0;
+        padding: 15px 18px;
+        background: rgba(255, 255, 255, 0.12);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
+        border: 1px solid rgba(255, 255, 255, 0.25);
+        border-radius: 12px;
+        max-width: 850px;
+        text-align: center;
+        color: #fff;
+        display: none;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+      }
+      [data-theme="dark"] .copy-card {
+        background: rgba(0, 0, 0, 0.25);
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .copy-row{display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; justify-content:center;}
+      .copy-field{display:flex; flex-direction:column; gap:4px; text-align: left;}
+      .copy-label{font-size:0.7rem; font-weight:700; color:rgba(255,255,255,0.9); text-transform:uppercase; letter-spacing:.4px;}
+      .copy-select, .copy-input{padding:8px 12px; font-size:0.95rem; font-weight:700; color:#1e293b;
+        background:#ffffff; border:1px solid transparent; border-radius:8px; outline:none;
+        font-family:inherit; font-variant-numeric:tabular-nums; height:38px; transition: all 0.2s;
+        box-shadow: 0 1px 2px rgba(0,0,0,0.05);}
+      [data-theme="dark"] .copy-select, [data-theme="dark"] .copy-input {
+        background: #1e293b;
+        color: #f1f5f9;
+        border: 1px solid rgba(255, 255, 255, 0.1);
+      }
+      .copy-select{cursor:pointer; min-width:150px;}
+      .copy-input{width:80px; text-align:center;}
+      .copy-select:focus, .copy-input:focus { border-color:#93c5fd; box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.4); }
+
+      .copy-btn{padding:0 18px; height:38px; background:#ffffff; color:var(--primary); border:none;
+        border-radius:8px; font-weight:700; font-size:0.9rem; cursor:pointer; transition:all .2s;
+        white-space:nowrap; display:inline-flex; align-items:center; justify-content:center; box-shadow: 0 2px 4px rgba(0,0,0,0.1);}
+      .copy-btn:hover{ background:#f1f5f9; color:var(--primary-hover); }
+      .copy-btn:disabled{ opacity:.8; cursor:default; }
+
+      [data-theme="dark"] .copy-btn { background: var(--primary); color: #ffffff; border: 1px solid rgba(255,255,255,0.2); }
+      [data-theme="dark"] .copy-btn:hover { background: var(--primary-hover); }
+
+      .copy-hint{margin:10px 0 0; font-size:0.72rem; color:rgba(255,255,255,0.85); text-align:center; line-height:1.5;}
+      @media (max-width: 600px){
+        .copy-card { margin: 15px 10px 0; padding: 12px; }
+        .copy-row{flex-direction:column; align-items:stretch;}
+        .copy-select, .copy-input, .copy-btn{width:100%;}
+      }
+
       .table-wrap{width:100%; overflow-x:auto; -webkit-overflow-scrolling:touch; padding-bottom:16px;}
       .table-wrap::-webkit-scrollbar { height:10px; }
       .table-wrap::-webkit-scrollbar-track { background:var(--stripe); border-radius:6px; margin:0 15px; }
@@ -1053,24 +1107,6 @@ HISTORY_PAGE = r'''<!doctype html>
       tbody tr:hover td.latest-cell{background:var(--hover);}
       tbody tr:last-child th, tbody tr:last-child td{border-bottom:none}
       tbody td.high-cell{cursor:help;}
-      .copy-card{padding:18px; border-top:1px solid var(--border); background:var(--card);}
-      .copy-row{display:flex; flex-wrap:wrap; gap:16px; align-items:flex-end; justify-content:center;}
-      .copy-field{display:flex; flex-direction:column; gap:4px;}
-      .copy-label{font-size:0.7rem; font-weight:700; color:var(--muted); text-transform:uppercase; letter-spacing:.4px;}
-      .copy-select, .copy-input{padding:8px 12px; font-size:0.95rem; font-weight:700; color:var(--text);
-        background:var(--stripe); border:1px solid var(--border); border-radius:8px; outline:none;
-        font-family:inherit; font-variant-numeric:tabular-nums; height:38px;}
-      .copy-select{cursor:pointer; min-width:150px;}
-      .copy-input{width:80px; text-align:center;}
-      .copy-select:focus, .copy-input:focus { border-color:var(--primary); }
-      .copy-btn{padding:0 18px; height:38px; background:var(--primary); color:#fff; border:none;
-        border-radius:8px; font-weight:700; font-size:0.9rem; cursor:pointer; transition:background .2s;
-        white-space:nowrap; display:inline-flex; align-items:center; justify-content:center;}
-      .copy-btn:hover{ background:#1d4ed8; }
-      .copy-btn:disabled{ opacity:.9; cursor:default; }
-      .copy-hint{margin:10px 0 0; font-size:0.72rem; color:var(--muted); text-align:center; line-height:1.5;}
-      @media (max-width: 600px){.copy-row{flex-direction:column; align-items:stretch;}
-        .copy-select, .copy-input, .copy-btn{width:100%;}}
       .foot{padding:14px 18px; font-size:.75rem; color:var(--muted); text-align:center; line-height:1.6}
       @media (max-width:600px){body{padding:10px 5px 20px} .header{padding:15px 10px}
         th,td{padding:6px 8px} thead th, thead th:first-child, tbody th{font-size:0.65rem;}
@@ -1088,18 +1124,9 @@ HISTORY_PAGE = r'''<!doctype html>
           <button type="button" data-freq="quarterly" class="freq-btn">Quarterly</button>
           <button type="button" data-freq="semiannual" class="freq-btn">Semiannual</button>
         </div>
-      </div>
-      <div id="loadingState" style="text-align:center; padding: 40px; font-weight:bold;">
-        Fetching historical data for {{ symbol }}...
-      </div>
-      <div id="content" style="display:none;">
-        <div class="table-wrap">
-          <table>
-            <thead id="tableHead"></thead>
-            <tbody id="tableBody"></tbody>
-          </table>
-        </div>
-        <div class="copy-card">
+
+        <!-- Copy Card — below the title (matches tradingview.py layout) -->
+        <div class="copy-card" id="headerCopyCard">
           <div class="copy-row">
             <div class="copy-field">
               <label class="copy-label" for="copyLatestPeriod">Latest Period</label>
@@ -1119,6 +1146,19 @@ HISTORY_PAGE = r'''<!doctype html>
             <button type="button" class="copy-btn" onclick="handleCopyData()">Copy Price Data</button>
           </div>
           <p class="copy-hint">Copies the <b>Current</b> close plus the selected period values as a tab-separated row (values only, no labels). Use the <b>Value</b> selector to copy either <b>Highest Close</b> or <b>Close Price</b>. Press <b>Enter</b> to copy instantly.</p>
+        </div>
+        <!-- End Copy Card -->
+
+      </div>
+      <div id="loadingState" style="text-align:center; padding: 40px; font-weight:bold;">
+        Fetching historical data for {{ symbol }}...
+      </div>
+      <div id="content" style="display:none;">
+        <div class="table-wrap">
+          <table>
+            <thead id="tableHead"></thead>
+            <tbody id="tableBody"></tbody>
+          </table>
         </div>
         <p class="foot" id="footerNote"></p>
       </div>
@@ -1143,9 +1183,6 @@ HISTORY_PAGE = r'''<!doctype html>
 
       function toISO(d) { return d.toISOString().split("T")[0]; }
 
-      // Maps any trading day to its period bucket.
-      // Quarterly : 1Q (Jan–Mar), 1H (Apr–Jun), 9M (Jul–Sep), FY (Oct–Dec)
-      // Semiannual: 1H (Jan–Jun), FY (Jul–Dec)
       function buildPeriodMeta(d, frequency) {
         const y = d.getFullYear();
         const m = d.getMonth();
@@ -1180,25 +1217,11 @@ HISTORY_PAGE = r'''<!doctype html>
           const meta = buildPeriodMeta(d, frequency);
           let g = grouped[meta.key];
           if (!g) {
-            g = grouped[meta.key] = {
-              period: meta.label,
-              date: null,
-              close: null,
-              high: null,
-              highDate: null,
-            };
+            g = grouped[meta.key] = { period: meta.label, date: null, close: null, high: null, highDate: null };
             order.push(meta.key);
           }
-          // Highest close recorded inside the period
-          if (g.high === null || c > g.high) {
-            g.high = c;
-            g.highDate = iso;
-          }
-          // Period-end close: last trading day of the closing month
-          if (d.getMonth() === meta.endMonth && (g.date === null || iso > g.date)) {
-            g.date = iso;
-            g.close = c;
-          }
+          if (g.high === null || c > g.high) { g.high = c; g.highDate = iso; }
+          if (d.getMonth() === meta.endMonth && (g.date === null || iso > g.date)) { g.date = iso; g.close = c; }
         }
         const periodData = order
           .map((k) => grouped[k])
@@ -1227,6 +1250,7 @@ HISTORY_PAGE = r'''<!doctype html>
           processedData = processPeriodData(result.timestamp, result.indicators.quote[0].close, freq);
           document.getElementById("loadingState").style.display = "none";
           document.getElementById("content").style.display = "block";
+          document.getElementById("headerCopyCard").style.display = "block";
           render();
         } catch (error) {
           document.getElementById("loadingState").innerHTML = `<span style="color:#ef4444">Error: ${error.message}</span><br><small>Please check the ticker symbol.</small>`;
@@ -1274,7 +1298,7 @@ HISTORY_PAGE = r'''<!doctype html>
           `Swipe horizontally to view every period. The <b>Close Price</b> row shows period-end closing prices in the listing currency. The <b>Highest Close</b> row shows the highest daily closing price recorded inside each period (hover a cell to see the exact date). The <b>Current</b> column always shows the most recent trading day close (${latestHeader}).`;
         const selectEl = document.getElementById("copyLatestPeriod");
         selectEl.innerHTML = periodData.map((d, i) => `<option value="${i}">${d.period}</option>`).join("");
-        const defaultN = Math.min(freq === "semiannual" ? 10 : 20, periodData.length);
+        const defaultN = Math.min(freq === "semiannual" ? 4 : 8, periodData.length);
         document.getElementById("copyN").value = defaultN;
         document.getElementById("copyN").max = periodData.length;
       }
